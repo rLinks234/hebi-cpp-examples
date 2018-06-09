@@ -101,7 +101,7 @@ public:
     return velocities_(1, 0);
   }
 
-  double velocity_feedforward_() const {
+  double velocity_feedforward() const {
     return velocity_feedforward_;
   }
 

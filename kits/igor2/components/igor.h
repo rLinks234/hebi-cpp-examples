@@ -5,6 +5,8 @@
 #include <condition_variable>
 #include <mutex>
 
+#include <Eigen/Eigen>
+
 #include "components/arm.h"
 #include "components/chassis.h"
 #include "components/leg.h"
@@ -25,7 +27,7 @@ private:
 
   //----------------------------------------------------------------------------
   // Parameter Fields
-  PIDController lean_controller_(1.0, 20.0, 10.0);
+  PIDController lean_controller_{1.0, 20.0, 10.0};
   double joystick_dead_zone_{0.06};
   double wheel_radius_{0.100};
   double wheel_base_{0.43};
@@ -46,16 +48,16 @@ private:
   // HEBI interface fields
 
   std::shared_ptr<Group> group_;
-  GroupCommand group_command_(NumDoFs); 
-  GroupCommand group_feedback_(NumDoFs);
+  GroupCommand group_command_{NumDoFs};
+  GroupFeedback group_feedback_{NumDoFs};
 
   //----------------------------------------------------------------------------
   // Bodies
-  Chassis chassis_(value_lock_);
-  Leg<false> left_leg_(value_lock_, {2, 3});
-  Leg<true> right_leg_(value_lock_, {4, 5});
-  Arm<false> left_arm_(value_lock_, {6, 7, 8, 9});
-  Arm<true> right_arm_(value_lock_, {10, 11, 12, 13});
+  Chassis chassis_{value_lock_};
+  Leg<false> left_leg_{value_lock_, {2, 3}};
+  Leg<true> right_leg_{value_lock_, {4, 5}};
+  Arm<false> left_arm_{value_lock_, {6, 7, 8, 9}};
+  Arm<true> right_arm_{value_lock_, {10, 11, 12, 13}};
 
   //----------------------------------------------------------------------------
 
@@ -124,19 +126,19 @@ public:
     return chassis_;
   }
 
-  Leg& left_leg() {
+  Leg<false>& left_leg() {
     return left_leg_;
   }
 
-  Leg& right_leg() {
+  Leg<true>& right_leg() {
     return right_leg_;
   }
 
-  Arm& left_arm() {
+  Arm<false>& left_arm() {
     return left_arm_;
   }
 
-  Arm& right_arm() {
+  Arm<true>& right_arm() {
     return right_arm_;
   }
 

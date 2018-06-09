@@ -1,6 +1,9 @@
-#include "components/igor.h"
-
 #include <thread>
+
+#include "components/igor.h"
+#include "util/rotation.h"
+#include "group_feedback.hpp"
+#include "lookup.hpp"
 
 namespace hebi {
 
@@ -32,9 +35,9 @@ void Igor::update_com() {
   coms_.col(3) = right_arm_.com();
 
   const double inv_mass = 1.0 / mass_;
-  com_[0] = coms_.row(0).dot(masses) * inv_mass;
-  com_[1] = coms_.row(1).dot(masses) * inv_mass;
-  com_[2] = coms_.row(2).dot(masses) * inv_mass;
+  com_[0] = coms_.row(0).dot(masses_) * inv_mass;
+  com_[1] = coms_.row(1).dot(masses_) * inv_mass;
+  com_[2] = coms_.row(2).dot(masses_) * inv_mass;
 }
 
 template<typename T>
@@ -207,15 +210,22 @@ static double get_diff_rx_time(GroupFeedback& fbk,
   // FIXME: FINISH IMPLEMENTING
 }
 
+template<typename T>
+static T clip(T val, T min, T max) {
+  return std::min(std::max(val, min), max);
+}
+
+static constexpr double MILLI_TO_SEC = 0.001;
+
 void Igor::spin_once(bool bc) {
-  group->getNextFeedback(group_feedback_);
+  group_->getNextFeedback(group_feedback_);
 
   using high_resolution_clock = std::chrono::high_resolution_clock;
-  using seconds = std::chrono::seconds;
+  using millis = std::chrono::milliseconds;
   auto relative_time = high_resolution_clock::now() - start_time_;
 
   const double soft_start =
-    std::min(std::chrono::duration_cast<seconds>(relative_time), 1.0);
+    std::min(static_cast<double>(std::chrono::duration_cast<millis>(relative_time).count())*MILLI_TO_SEC, 1.0);
   const double dt = get_diff_rx_time(group_feedback_,
     last_rx_time_, diff_rx_time_);
 
@@ -232,12 +242,12 @@ void Igor::spin_once(bool bc) {
     current_velocity_error_[i] = velocityCommand - velocity;
 
     const auto gyro = imu.gyro().get();
-    const auto orientation = imu.orientation().get();
+    const auto orntn = imu.orientation().get();
 
     current_gyros_.col(i) =
       Eigen::Vector3f(gyro.getX(), gyro.getY(), gyro.getZ());
     current_orientation_.col(i) =
-      Eigen::Vector4f(gyro.getW(), gyro.getX(), gyro.getY(), gyro.getZ());
+      Eigen::Vector4f(orntn.getW(), orntn.getX(), orntn.getY(), orntn.getZ());
   }
 
   // TODO: optionally parallelize this
@@ -382,7 +392,7 @@ void Igor::perform_start(std::condition_variable& start_condition) {
 // TEMP
 static std::shared_ptr<Group> find_igor() {
   Lookup lookup;
-  std::this_thread::sleep(std::chrono::seconds(3));
+  std::this_thread::sleep_for(std::chrono::seconds(3));
   return lookup.getGroupFromNames({"Igor II"},
     {"wheel1", "wheel2",
      "hip1", "knee1",
@@ -403,8 +413,8 @@ void Igor::start() {
     return;
   }
 
-  group_->setCommandLifetime(300);
-  group_->setFeedbackFrequency(100.0);
+  group_->setCommandLifetimeMs(300);
+  group_->setFeedbackFrequencyHz(100.0);
 
   // TODO: find joystick
   // TODO: load gains

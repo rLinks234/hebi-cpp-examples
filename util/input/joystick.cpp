@@ -41,8 +41,16 @@ Joystick::Joystick(size_t index, SDL_Joystick* joystick, SDL_GameController* gam
   hat_events_.insert(hat_events_.begin(), num_hats_, JoystickElement<HatValue>());
   button_events_.insert(button_events_.begin(), num_buttons_, JoystickElement<bool>());
 
-  // TODO: set name_
-  // TODO: set guid_
+  name_ = SDL_GameControllerName(game_controller);
+
+  {
+    guid_.reserve(32);
+    char buffer[33];
+    SDL_JoystickGetGUIDString(SDL_JoystickGetGUID(joystick),
+                              buffer, 33);
+    guid_.append(buffer);
+  }
+
 }
 
 Joystick::~Joystick() {
