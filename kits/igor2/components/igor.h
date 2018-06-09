@@ -122,6 +122,23 @@ public:
 //------------------------------------------------------------------------------
 // Accessors
 
+  bool started() {
+    std::lock_guard<std::mutex> lock(state_lock_);
+    return started_;
+  }
+
+  double joystick_dead_zone() const {
+    return joystick_dead_zone_;
+  }
+
+  double wheel_radius() const {
+    return wheel_radius_;
+  }
+
+  double wheel_base() const {
+    return wheel_base_;
+  }
+
   Chassis& chassis() {
     return chassis_;
   }

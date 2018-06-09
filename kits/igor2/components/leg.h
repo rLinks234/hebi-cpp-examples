@@ -1,6 +1,7 @@
 #pragma once
 
 #include "components/body.h"
+#include "group_command.hpp"
 
 namespace hebi {
 
@@ -76,6 +77,10 @@ public:
 
   double user_commanded_knee_velocity() const {
     return user_commanded_knee_velocity_;
+  }
+
+  double knee_angle() const {
+    return knee_angle_;
   }
 
   

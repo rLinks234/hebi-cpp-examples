@@ -6,6 +6,8 @@
 
 #include <Eigen/Eigen>
 
+#include "robot_model.hpp"
+
 namespace hebi {
 
 using Vector3d = Eigen::Vector3d;
@@ -115,7 +117,7 @@ private:
 
 protected:
 
-  hebi::RobotModel robot_;
+  hebi::robot_model::RobotModel robot_;
 
   std::array<Matrix4d, OutputFrameCount> current_fk_;
   std::array<Matrix4d, CoMFrameCount> current_coms_;

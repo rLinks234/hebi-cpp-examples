@@ -48,8 +48,6 @@ static void get_grav_comp(
       // Add the torques for each joint to support the mass at this frame
       comp_torque += jacobians[i].transpose() * wrench_vec;
     }
-
-    return comp_torque;
 }
 
 //------------------------------------------------------------------------------
@@ -106,8 +104,8 @@ void Arm<NegateDirection>::setup_arm() {
 template <bool NegateDirection>
 void Arm<NegateDirection>::update_position() {
   ArmBase::update_position();
-  current_determinant_actual_ = ;
-  // current_determinant_expected_ = ;
+  current_determinant_actual_ = current_jacobians_actual_.determinant();
+  current_determinant_expected_ = current_jacobians_expected_.determinant();
 }
 
 //------------------------------------------------------------------------------
@@ -124,19 +122,25 @@ void Arm<NegateDirection>::integrate_step(double dt,
   adjusted_grip_velocity *= dt;
   new_grip_position_ = adjusted_grip_velocity + grip_position_;
 
-  //auto xyz_objective = ;
-  //auto new_arm_joint_angles = ;
+  auto xyz_objective = robot_model::EndEffectorPositionObjective(new_grip_position_);
+  // FIXME: Get rid of these temporaries
+  VectorXd new_arm_joint_angles(NumOfDofs);
+  VectorXd initial_pos(NumOfDofs);
+  MatrixXd jacob(6, NumOfDofs);
+  initial_pos.segment<NumOfDofs>(0) = feedback_position_.segment<NumOfDofs>(0);
+  auto res = robot_.solveIK(initial_pos, new_arm_joint_angles, xyz_objective);
 
-  //auto jacobian_new = ;
-  //double determinant_jacobian_new = ;
+  robot_.getJacobianEndEffector(new_arm_joint_angles, jacob);
+  double determinant_jacobian_new = jacob.topLeftCorner<3, 3>().determinant();
 
   if ((current_determinant_expected_ < jacobian_determinant_threshold_) &&
       (determinant_jacobian_new < current_determinant_expected_)) {
     // Near singularity - don't command arm towards it
     joint_velocities_.setZero();
   } else {
-    joint_velocities_ = solve(current_jacobians_actual_,
-                                     user_commanded_grip_velocity_);
+    // TODO: Check w/ matt and dave if solving w/ LU factorization makes sense here
+    joint_velocities_ = current_jacobians_actual_.topLeftCorner<3, 3>().
+        fullPivLu().solve(user_commanded_grip_velocity_);
     joint_angles_ = new_arm_joint_angles;
     grip_position_ = new_grip_position_;
   }
@@ -158,7 +162,7 @@ void Arm<NegateDirection>::update_command(hebi::GroupCommand& group_command,
   position_error_.segment<3>(0) = xyz_error_;
   position_error_ *= spring_gains_;
   velocity_error_ = current_jacobians_actual_*velocity_error_.segment<4>(0);
-  impedance_error_ = position_error_+velocity_error_;
+  impedance_error_ = position_error_ + velocity_error_;
   impedance_torque_ = current_jacobians_actual_.transpose()*impedance_error_;
   Eigen::Vector3d gravity = -pose.topRightCorner<1, 3>();
   get_grav_comp<4, 7>(robot_, feedback_position_, masses_, gravity, grav_comp_torque_);

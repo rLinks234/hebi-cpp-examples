@@ -1,6 +1,7 @@
 #pragma once
 
 #include "components/body.h"
+#include "group_command.hpp"
 
 namespace hebi {
 
@@ -78,6 +79,10 @@ public:
 
   const Vector3d& user_commanded_grip_velocity() const {
     return user_commanded_grip_velocity_;
+  }
+
+  double user_commanded_wrist_velocity() const {
+    return user_commanded_wrist_velocity_;
   }
 
 };

@@ -1,6 +1,8 @@
 #include "components/joystick_interface.h"
 #include "components/igor.h"
 
+#include "util/input/joystick.h"
+
 namespace hebi {
 
 //------------------------------------------------------------------------------
@@ -99,8 +101,8 @@ static void wrist_vel_event(Igor& igor, uint64_t ts, int hx, int hy) {
     igor.right_arm().set_wrist_velocity(0.0);
   } else {
     const double joy_low_pass = 0.95;
-    const double wrist_vel = igor.left_arm().wrist_velocity();
-    const double hat_dir = static_cast<double>(hy); 
+    const double wrist_vel = igor.left_arm().user_commanded_wrist_velocity();
+    const auto hat_dir = static_cast<double>(hy);
     double velocity = (joy_low_pass*wrist_vel)+hat_dir*(1.0-joy_low_pass)*0.25;
     igor.left_arm().set_wrist_velocity(velocity);
     igor.right_arm().set_wrist_velocity(velocity);
@@ -152,7 +154,7 @@ static void chassis_yaw_event(Igor& igor, const Functor& in_deadzone, uint64_t t
  * 
  */
 template <typename Functor>
-static void stance_height_triggers_event(Igor& igor, Joystick& joy, const Functor& vel_calc, uint64_t ts, float axis_value) {
+static void stance_height_triggers_event(Igor& igor, util::Joystick& joy, const Functor& vel_calc, uint64_t ts, float axis_value) {
   // Ignore this if `OPTIONS` is pressed
   if (joy.get_button('OPTIONS'))
     return;
