@@ -50,6 +50,7 @@ private:
   std::shared_ptr<Group> group_;
   GroupCommand group_command_{NumDoFs};
   GroupFeedback group_feedback_{NumDoFs};
+  std::shared_ptr<util::Joystick> joystick_;
 
   //----------------------------------------------------------------------------
   // Bodies
@@ -137,6 +138,10 @@ public:
 
   double wheel_base() const {
     return wheel_base_;
+  }
+
+  std::shared_ptr<util::Joystick> joystick() {
+    return joystick_;
   }
 
   Chassis& chassis() {

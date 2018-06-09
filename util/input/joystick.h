@@ -148,14 +148,18 @@ public:
 //------------------------------------------------------------------------------
 
   void add_axis_event_handler(size_t axis, AxisEventHandler handler);
+  void add_axis_event_handler(const std::string& axis, AxisEventHandler handler);
   void add_hat_event_handler(size_t hat, HatEventHandler handler);
   void add_button_event_handler(size_t button, ButtonEventHandler handler);
+  void add_button_event_handler(const std::string& button, ButtonEventHandler handler);
 
 //------------------------------------------------------------------------------
 
   float get_current_axis_state(size_t axis);
+  float get_current_axis_state(const std::string& axis);
   HatValue get_current_hat_state(size_t hat);
   bool get_current_button_state(size_t button);
+  bool get_current_button_state(const std::string& button);
 
 //------------------------------------------------------------------------------
 
