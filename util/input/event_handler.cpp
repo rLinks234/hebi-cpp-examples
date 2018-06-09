@@ -145,11 +145,36 @@ static SDLEventHandler sSingleton;
 //------------------------------------------------------------------------------
 // Built in event handlers
 
+static inline float axis_value(uint8_t value) {
+  return static_cast<float>(static_cast<double>(value) * 0.0000305185);
+}
+
+static inline HatValue hat_value(uint8_t value) {
+  HatValue ret;
+
+  if (value & SDL_HAT_UP) {
+    ret.y = 1;
+  } else if (value & SDL_HAT_DOWN) {
+    ret.y = -1;
+  }
+  if (value & SDL_HAT_RIGHT) {
+    ret.x = 1;
+  } else if (value & SDL_HAT_LEFT) {
+    ret.x = -1;
+  }
+
+  return ret;
+}
+
+static inline bool button_value(uint8_t value) {
+  return value == SDL_PRESSED;
+}
+
 class JoystickDispatcher {
 
 public:
 
-  static joystick_added(const SDL_Event& event) {
+  static void joystick_added(const SDL_Event& event) {
     const auto& joystick_event = event.jdevice;
     auto which = joystick_event.which;
 
@@ -163,22 +188,55 @@ public:
     Joystick::set_at(which, joystick, gamecontroller);
   }
 
-  static joystick_axis_motion(const SDL_Event& event) {
+  static void joystick_axis_event(const SDL_Event& event) {
     const auto& axis_event = event.jaxis;
     auto ts = axis_event.timestamp;
+    auto which = axis_event.which;
+    size_t axis = axis_event.axis;
 
+    auto _joystick = Joystick::at_index(which);
+    auto joystick = _joystick.get();
+    assert(joystick != nullptr);
+    if (joystick == nullptr) {
+      // TODO
+      return;
+    }
+
+    joystick->on_axis_motion(ts, axis, axis_value(axis_event.value));
   }
 
-  static joystick_hat_motion(const SDL_Event& event) {
+  static void joystick_hat_event(const SDL_Event& event) {
     const auto& hat_event = event.jhat;
-    auto ts = axis_event.timestamp;
+    auto ts = hat_event.timestamp;
+    auto which = hat_event.which;
+    size_t hat = hat_event.hat;
 
+    auto _joystick = Joystick::at_index(which);
+    auto joystick = _joystick.get();
+    assert(joystick != nullptr);
+    if (joystick == nullptr) {
+      // TODO
+      return;
+    }
+
+    joystick->on_hat_event(ts, axis, hat_value(hat_event.value));
   }
 
-  static joystick_button_event(const SDL_Event& event) {
+  static void joystick_button_event(const SDL_Event& event) {
     const auto& button_event = event.jbutton;
-    auto ts = axis_event.timestamp;
+    auto ts = button_event.timestamp;
+    auto which = button_event.which;
+    size_t button = button_event.button;
 
+    auto _joystick = Joystick::at_index(which);
+    auto joystick = _joystick.get();
+    assert(joystick != nullptr);
+    if (joystick == nullptr) {
+      // TODO
+      return;
+    }
+
+    joystick->on_button_event(ts, axis, button_value(button_event.value));
   }
 
 };

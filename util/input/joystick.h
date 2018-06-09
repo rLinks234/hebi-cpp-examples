@@ -6,6 +6,7 @@
 #include <functional>
 #include <mutex>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace hebi {
@@ -22,6 +23,7 @@ private:
 
   ValueT value_;
   uint32_t timestamp_;
+  std::string name_;
   std::vector<EventHandler> callbacks_;
   std::mutex val_lock_;
   std::condition_variable cv_;
@@ -36,6 +38,12 @@ public:
 
   using EventHandler = std::function<void(uint32_t, ValueT)>;
 
+  JoystickElement() = delete;
+  JoystickElement(const std::string& name="") : name_(name) {
+    ValueT val{};
+    update(0, val);
+  }
+
   void update(uint32_t ts, ValueT value) {
     std::unique_lock<std::mutex> lock(val_lock_);
 
@@ -47,6 +55,14 @@ public:
     }
 
     cv_.notify_all();    
+  }
+
+  void set_name(const std::string& name) {
+    name_ = name;
+  }
+
+  const std::string name() const {
+    return name_;
   }
 
   ValueT get() const {
@@ -102,8 +118,8 @@ private:
 
   static void set_at(size_t index, SDL_Joystick* joystick, SDL_GameController* game_controller);
 
-  void on_axis_motion(uint32_t ts, size_t axis, float value);
-  void on_hat_motion(uint32_t ts, size_t hat, HatValue value);
+  void on_axis_event(uint32_t ts, size_t axis, float value);
+  void on_hat_event(uint32_t ts, size_t hat, HatValue value);
   void on_button_event(uint32_t ts, size_t axis, bool value);
 
 public:
