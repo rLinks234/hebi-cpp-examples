@@ -1,6 +1,7 @@
 #include <thread>
 
 #include "components/igor.h"
+#include "components/joystick_interface.h"
 #include "util/rotation.h"
 #include "group_feedback.hpp"
 #include "lookup.hpp"
@@ -381,7 +382,7 @@ void Igor::start_controller() {
 
   soft_startup();
 
-  // TODO: register event handlers
+  register_igor_event_handlers(*this);
   start_time_ = std::chrono::high_resolution_clock::now();
 
   state_lock_.lock();
