@@ -19,7 +19,7 @@ struct SDL2_InputSubsystemInitializer {
   }
 };
 
-static void ensure_SDL2_loaded() {
+void load_joystick_system() {
   static SDL2_InputSubsystemInitializer loader;
 }
 
@@ -92,7 +92,6 @@ void Joystick::add_button_alias(const char* alias, size_t button) {
 //------------------------------------------------------------------------------
 
 size_t Joystick::joystick_count() {
-  ensure_SDL2_loaded();
   return static_cast<size_t>(SDL_NumJoysticks());
 }
 

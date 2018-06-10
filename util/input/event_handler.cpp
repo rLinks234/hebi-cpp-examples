@@ -143,6 +143,7 @@ public:
 
     std::condition_variable start_condition;
     std::thread proc_thread(&SDLEventHandler::run, this, std::ref(start_condition));
+    proc_thread.detach();
     start_condition.wait(lock);
   }
 
@@ -257,9 +258,14 @@ public:
 //------------------------------------------------------------------------------
 // Event handler initializer
 
+// from joystick.cpp
+void load_joystick_system();
+
 struct EventHandlerInitializer {
 
   EventHandlerInitializer() {
+    load_joystick_system();
+
     register_event(SDL_JOYAXISMOTION, JoystickDispatcher::joystick_axis_event);
     register_event(SDL_JOYHATMOTION, JoystickDispatcher::joystick_hat_event);
     register_event(SDL_JOYBUTTONDOWN, JoystickDispatcher::joystick_button_event);
@@ -275,11 +281,10 @@ struct EventHandlerInitializer {
 // Public API
 
 void initialize_event_handler() {
-  static EventHandlerInitializer initializer;
+  static EventHandlerInitializer initializer{};
 }
 
 void register_event(SDL_EventType event, SDLEventCallback callback) {
-  initialize_event_handler();
   sSingleton.register_event(event, callback);
 }
 

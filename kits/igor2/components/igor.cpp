@@ -387,6 +387,7 @@ void Igor::start_controller() {
     throw std::runtime_error("No joysticks found");
   }
   joystick_ = availableJoysticks[0];
+  printf("Joystick found: %s\n", joystick_->name().c_str());
 
   register_igor_event_handlers(*this);
   start_time_ = std::chrono::high_resolution_clock::now();
@@ -421,6 +422,7 @@ void Igor::perform_start(std::condition_variable& start_condition) {
 
 // TEMP
 static std::shared_ptr<Group> find_igor() {
+#if 0
   Lookup lookup;
   std::this_thread::sleep_for(std::chrono::seconds(3));
   return lookup.getGroupFromNames({"Igor II"},
@@ -429,6 +431,9 @@ static std::shared_ptr<Group> find_igor() {
      "hip2", "knee2",
      "base1", "shoulder1", "elbow1", "wrist1",
      "base2", "shoulder2", "elbow2", "wrist2"});
+#else
+  return hebi::Group::createImitation(14);
+#endif
 }
 
 void Igor::start() {
@@ -453,6 +458,7 @@ void Igor::start() {
   // std::thread constructor passes arguments by copy.
   // Since we need a ref to the cv, use std::ref
   std::thread proc_thread(&Igor::perform_start, this, std::ref(start_condition));
+  proc_thread.detach();
   start_condition.wait(lock);
 }
 
