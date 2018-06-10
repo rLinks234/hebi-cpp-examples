@@ -81,11 +81,19 @@ void Joystick::set_at(size_t index, SDL_Joystick* joystick, SDL_GameController* 
   sJoysticks[index] = std::make_shared<Joystick>(index, joystick, game_controller, ctor_key{});
 }
 
+void Joystick::add_axis_alias(const char* alias, size_t axis) {
+  axis_aliases_[std::string(alias)] = axis;
+}
+
+void Joystick::add_button_alias(const char* alias, size_t button) {
+  button_aliases_[std::string(alias)] = button;
+}
+
 //------------------------------------------------------------------------------
 
 size_t Joystick::joystick_count() {
   ensure_SDL2_loaded();
-  return SDL_NumJoysticks();
+  return static_cast<size_t>(SDL_NumJoysticks());
 }
 
 std::shared_ptr<Joystick> Joystick::at_index(size_t index) {
@@ -160,6 +168,10 @@ void Joystick::add_axis_event_handler(size_t axis, AxisEventHandler handler) {
   axis_events_[axis].add_event_handler(handler);
 }
 
+void Joystick::add_axis_event_handler(const std::string& axis, AxisEventHandler handler) {
+  axis_events_[axis_aliases_.at(axis)].add_event_handler(handler);
+}
+
 void Joystick::add_hat_event_handler(size_t hat, HatEventHandler handler) {
   hat_events_[hat].add_event_handler(handler);
 }
@@ -168,10 +180,18 @@ void Joystick::add_button_event_handler(size_t button, ButtonEventHandler handle
   button_events_[button].add_event_handler(handler);
 }
 
+void Joystick::add_button_event_handler(const std::string& button, ButtonEventHandler handler) {
+  button_events_[button_aliases_.at(button)].add_event_handler(handler);
+}
+
 //------------------------------------------------------------------------------
 
 float Joystick::get_current_axis_state(size_t axis) {
   return axis_events_[axis].get();
+}
+
+float Joystick::get_current_axis_state(const std::string& axis) {
+  return get_current_axis_state(axis_aliases_.at(axis));
 }
 
 HatValue Joystick::get_current_hat_state(size_t hat) {
@@ -180,6 +200,10 @@ HatValue Joystick::get_current_hat_state(size_t hat) {
 
 bool Joystick::get_current_button_state(size_t button) {
   return button_events_[button].get();
+}
+
+bool Joystick::get_current_button_state(const std::string& button) {
+  return get_current_button_state(button_aliases_.at(button));
 }
 
 

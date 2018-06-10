@@ -83,8 +83,6 @@ public:
     return knee_angle_;
   }
 
-  
-
 };
 
 }

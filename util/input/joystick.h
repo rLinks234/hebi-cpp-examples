@@ -4,6 +4,7 @@
 
 #include <condition_variable>
 #include <functional>
+#include <map>
 #include <mutex>
 #include <string>
 #include <utility>
@@ -128,8 +129,13 @@ private:
   std::vector<JoystickElement<HatValue>> hat_events_;
   std::vector<JoystickElement<bool>> button_events_;
 
+  std::map<std::string, size_t> axis_aliases_;
+  std::map<std::string, size_t> button_aliases_;
+
   static void set_at(size_t index, SDL_Joystick* joystick, SDL_GameController* game_controller);
 
+  void add_axis_alias(const char* alias, size_t axis);
+  void add_button_alias(const char* alias, size_t button);
   void on_axis_event(uint32_t ts, size_t axis, float value);
   void on_hat_event(uint32_t ts, size_t hat, HatValue value);
   void on_button_event(uint32_t ts, size_t axis, bool value);

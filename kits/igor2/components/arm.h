@@ -36,11 +36,11 @@ private:
 
   alignas(16) VectorDoF<double> joint_angles_;
   alignas(16) VectorDoF<double> grav_comp_torque_;
-  alignas(16) VectorDoF<float> joint_velocities_;
-  alignas(16) VectorDoF<float> joint_efforts_;
+  alignas(16) VectorDoF<double> joint_velocities_;
+  alignas(16) VectorDoF<double> joint_efforts_;
 
-  alignas(64) Vector6d damper_gains_;
-  alignas(64) Vector6d spring_gains_;
+  alignas(64) Eigen::Array<double, 6, 1> damper_gains_;
+  alignas(64) Eigen::Array<double, 6, 1> spring_gains_;
 
   alignas(64) Eigen::Matrix4d home_ef_;
 

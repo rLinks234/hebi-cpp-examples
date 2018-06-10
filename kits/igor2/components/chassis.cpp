@@ -163,4 +163,6 @@ void Chassis::set_yaw_velocity(double velocity) {
   user_commanded_yaw_velocity_ = velocity;
 }
 
+constexpr size_t Chassis::NumCommands;
+
 }

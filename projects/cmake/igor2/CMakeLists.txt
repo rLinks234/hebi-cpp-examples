@@ -20,13 +20,13 @@ set(HEBI_CPP_SOURCES
   ${HEBI_DIR}/src/trajectory.cpp
   ${HEBI_DIR}/src/log_file.cpp)
 
-set(HEBI_CPP_LINK_DIRECTORIES ${HEBI_DIR}/lib/linux_x86_64)
+set(HEBI_CPP_LINK_DIRECTORY ${HEBI_DIR}/lib/linux_x86_64)
 set(HEBI_CPP_INCLUDE_DIRECTORIES ${HEBI_DIR}/include ${HEBI_DIR}/include/Eigen ${HEBI_DIR}/src)
 
-link_directories(${HEBI_CPP_LINK_DIRECTORIES})
-
 # Packaging sources into object library allows reuse if you have multiple targets
-add_library(hebi_cpp_files OBJECT ${HEBI_CPP_SOURCES})
+add_library(hebi_cpp SHARED ${HEBI_CPP_SOURCES})
+
+
 
 set(hebi_input_src
   ${ROOT_DIR}/util/input/event_handler.cpp
@@ -48,6 +48,8 @@ add_library(hebi-input SHARED ${hebi_input_src})
 add_library(hebi-igor2 SHARED ${igor2_lib_src})
 add_executable(igor2_demo ${igor2_driver_src})
 
+target_include_directories(hebi_cpp PUBLIC
+  ${HEBI_CPP_INCLUDE_DIRECTORIES})
 target_include_directories(hebi-input PUBLIC ${ROOT_DIR}
   ${SDL2_INCLUDE_DIRS}
   ${HEBI_CPP_INCLUDE_DIRECTORIES})
@@ -58,6 +60,8 @@ target_include_directories(igor2_demo PUBLIC ${ROOT_DIR}
   ${ROOT_DIR}/kits/igor2 ${SDL2_INCLUDE_DIRS}
   ${HEBI_CPP_INCLUDE_DIRECTORIES})
 
-target_link_libraries(hebi-input hebi ${SDL2_LIBRARIES})
-target_link_libraries(hebi-igor2 hebi-input hebi ${SDL2_LIBRARIES})
-target_link_libraries(igor2_demo hebi-igor2 hebi-input hebi ${SDL2_LIBRARIES})
+set(HEBI_C_LIB ${HEBI_CPP_LINK_DIRECTORY}/${CMAKE_SHARED_LIBRARY_PREFIX}hebi${CMAKE_SHARED_LIBRARY_SUFFIX})
+
+target_link_libraries(hebi-input PUBLIC hebi_cpp ${HEBI_C_LIB} ${SDL2_LIBRARIES})
+target_link_libraries(hebi-igor2 PUBLIC hebi-input)
+target_link_libraries(igor2_demo PUBLIC hebi-igor2)

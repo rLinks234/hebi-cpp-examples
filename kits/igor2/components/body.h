@@ -122,8 +122,8 @@ protected:
   alignas(16) VectorDoF<double> feedback_position_command_;
   alignas(16) VectorDoF<double> impedance_torque_;
   alignas(16) VectorDoF<double> home_angles_;
-  alignas(16) VectorDoF<float> feedback_velocity_;
-  alignas(16) VectorDoF<float> feedback_velocity_error_;
+  alignas(16) VectorDoF<double> feedback_velocity_;
+  alignas(16) VectorDoF<double> feedback_velocity_error_;
   
   alignas(16) Eigen::Vector3d xyz_error_;
   alignas(16) Vector6d position_error_;
@@ -192,8 +192,8 @@ public:
     for (size_t i : group_indices()) {
       feedback_position_[idx] = position[i];
       feedback_position_command_[idx] = position_command[i];
-      feedback_velocity_[idx] = velocity[i];
-      feedback_velocity_error_[idx] = velocity_error[i];
+      feedback_velocity_[idx] = static_cast<double>(velocity[i]);
+      feedback_velocity_error_[idx] = static_cast<double>(velocity_error[i]);
       idx++;
     }
 

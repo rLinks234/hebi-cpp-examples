@@ -36,10 +36,10 @@ void Leg<NegateDirection>::setup_leg() {
 
   robot_.setBaseFrame(base_frame);
 
-  Eigen::VectorXd masses(2);
+  Eigen::VectorXd masses(4);
   robot_.getMasses(masses);
   set_mass(masses.sum());
-  masses_ = masses.segment<2>(0);
+  masses_ = masses.segment<4>(0);
 
 }
 
@@ -132,5 +132,22 @@ void Leg<NegateDirection>::set_knee_velocity(double velocity) {
   auto lock = lock_guard();
   user_commanded_knee_velocity_ = velocity;
 }
+
+template void Leg<false>::setup_leg();
+template void Leg<true>::setup_leg();
+template void Leg<false>::update_position();
+template void Leg<true>::update_position();
+template bool Leg<false>::should_limit_knee_velocity();
+template bool Leg<true>::should_limit_knee_velocity();
+template void Leg<false>::integrate_step(double dt, double knee_velocity);
+template void Leg<true>::integrate_step(double dt, double knee_velocity);
+template void Leg<false>::update_command(hebi::GroupCommand& group_command,
+                                         double roll_angle,
+                                         double soft_start);
+template void Leg<true>::update_command(hebi::GroupCommand& group_command,
+                                        double roll_angle,
+                                        double soft_start);
+template void Leg<false>::set_knee_velocity(double velocity);
+template void Leg<true>::set_knee_velocity(double velocity);
 
 }

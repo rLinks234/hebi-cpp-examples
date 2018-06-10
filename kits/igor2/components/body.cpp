@@ -1,4 +1,6 @@
 #include "components/body.h"
+#include "components/arm.h"
+#include "components/leg.h"
 
 namespace hebi {
 
@@ -73,5 +75,8 @@ VectorXd PeripheralBody<DoFCount, OutputFrameCount, CoMFrameCount>::
                         const Vector3d& gravty) {
   // TODO
 }
+
+template void LegBase::update_position();
+template void ArmBase::update_position();
 
 }

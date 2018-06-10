@@ -139,7 +139,7 @@ void Arm<NegateDirection>::integrate_step(double dt,
     joint_velocities_.setZero();
   } else {
     // TODO: Check w/ matt and dave if solving w/ LU factorization makes sense here
-    joint_velocities_ = current_jacobians_actual_.topLeftCorner<3, 3>().
+    joint_velocities_.segment<3>(0) = current_jacobians_actual_.topLeftCorner<3, 3>().
         fullPivLu().solve(user_commanded_grip_velocity_);
     joint_angles_ = new_arm_joint_angles;
     grip_position_ = new_grip_position_;
@@ -158,9 +158,9 @@ template <bool NegateDirection>
 void Arm<NegateDirection>::update_command(hebi::GroupCommand& group_command,
                                           const Matrix4d& pose,
                                           double soft_start) {
-  xyz_error_ = grip_position_-current_tip_fk_.topRightCorner<1, 3>();
+  xyz_error_ = grip_position_-current_tip_fk_.topRightCorner<1, 3>().transpose();
   position_error_.segment<3>(0) = xyz_error_;
-  position_error_ *= spring_gains_;
+  position_error_.array() *= spring_gains_;
   velocity_error_ = current_jacobians_actual_*velocity_error_.segment<4>(0);
   impedance_error_ = position_error_ + velocity_error_;
   impedance_torque_ = current_jacobians_actual_.transpose()*impedance_error_;
@@ -172,8 +172,8 @@ void Arm<NegateDirection>::update_command(hebi::GroupCommand& group_command,
   for (auto i : group_indices()) {
     auto& actuator = group_command[i].actuator();
     actuator.position().set(joint_angles_[idx]);
-    actuator.velocity().set(joint_velocities_[idx]);
-    actuator.effort().set(joint_efforts_[idx]);
+    actuator.velocity().set(static_cast<float>(joint_velocities_[idx]));
+    actuator.effort().set(static_cast<float>(joint_efforts_[idx]));
     idx++;
   }
 }
@@ -201,5 +201,26 @@ void Arm<NegateDirection>::set_wrist_velocity(double velocity) {
   auto lock = lock_guard();
   user_commanded_wrist_velocity_ = velocity;
 }
+
+template<bool B> constexpr size_t Arm<B>::NumOfDofs;
+template<bool B> constexpr size_t Arm<B>::OutputFrameCount;
+template<bool B> constexpr size_t Arm<B>::CoMFrameCount;
+
+template void Arm<false>::setup_arm();
+template void Arm<true>::setup_arm();
+template void Arm<false>::update_position();
+template void Arm<true>::update_position();
+template void Arm<false>::integrate_step(double dt, const Vector3d& calculated_grip_velocity);
+template void Arm<true>::integrate_step(double dt, const Vector3d& calculated_grip_velocity);
+template void Arm<false>::update_command(hebi::GroupCommand& group_command, const Matrix4d& pose, double soft_start);
+template void Arm<true>::update_command(hebi::GroupCommand& group_command, const Matrix4d& pose, double soft_start);
+template void Arm<false>::set_x_velocity(double velocity);
+template void Arm<true>::set_x_velocity(double velocity);
+template void Arm<false>::set_y_velocity(double velocity);
+template void Arm<true>::set_y_velocity(double velocity);
+template void Arm<false>::set_z_velocity(double velocity);
+template void Arm<true>::set_z_velocity(double velocity);
+template void Arm<false>::set_wrist_velocity(double velocity);
+template void Arm<true>::set_wrist_velocity(double velocity);
 
 }

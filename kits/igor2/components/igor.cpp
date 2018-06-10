@@ -382,6 +382,12 @@ void Igor::start_controller() {
 
   soft_startup();
 
+  auto availableJoysticks = util::Joystick::available_joysticks();
+  if (availableJoysticks.empty()) {
+    throw std::runtime_error("No joysticks found");
+  }
+  joystick_ = availableJoysticks[0];
+
   register_igor_event_handlers(*this);
   start_time_ = std::chrono::high_resolution_clock::now();
 
