@@ -12,6 +12,10 @@
 #include "components/leg.h"
 #include "util/input/joystick.h"
 
+#include "group.hpp"
+#include "group_command.hpp"
+#include "group_feedback.hpp"
+
 namespace hebi {
 
 class Igor {
@@ -75,7 +79,7 @@ private:
   Eigen::Vector3d line_com_;
   Eigen::Vector3d ground_point_;
 
-  Eigen::Matrix<double, 1, 5> masses_{0.0};
+  Eigen::Matrix<double, 1, 5> masses_;
 
   Eigen::Matrix3d roll_rotation_;
   Eigen::Matrix3d pitch_rotation_;

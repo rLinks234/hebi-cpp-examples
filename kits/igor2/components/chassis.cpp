@@ -41,13 +41,21 @@ void Chassis::update_time() {
   trajectory_time_ = std::chrono::high_resolution_clock::now();
 }
 
+static constexpr double MILLI_TO_SEC = 1.0 / 1000.0;
+template<typename T> double to_sec(const T& t) {
+  auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(t);
+  uint64_t ct = static_cast<uint64_t>(ms.count());
+  double ret = static_cast<double>(ct) * MILLI_TO_SEC;
+  return ret + static_cast<double>(ct % 1000) * MILLI_TO_SEC;
+}
+
 void Chassis::update_trajectory(double user_commanded_knee_velocity,
                                 const Vector3d& user_commanded_grip_velocity) {
   auto time_now = std::chrono::high_resolution_clock::now();
   auto duration = time_now - trajectory_time_;
   trajectory_time_ = time_now;
   
-  const double t = std::chrono::duration_cast<std::chrono::seconds>(duration);
+  const double t = to_sec(duration);
 
   // ---------------------------------------------
   // Smooth the trajectories for various commands.
@@ -60,7 +68,7 @@ void Chassis::update_trajectory(double user_commanded_knee_velocity,
 
   // Start waypoint
   velocities_.col(0) = velocity_now;
-  acclerations_.col(0) = acceleration_now;
+  accelerations_.col(0) = acceleration_now;
   jerks_.col(0) = jerk_now;
 
   // End waypoint
@@ -122,7 +130,7 @@ void Chassis::update_velocity_controller(double dt,
     (fbk_chassis_vel - last_feedback_chassis_velocity_) * inv_dt;
 
   const double lean_feedforward = (0.1 * params.robot_mass) *
-    cmd_chassis_accel / height_com;
+    cmd_chassis_accel / params.height_com;
   const double velocity_feedforward = cmd_chassis_vel / wheel_radius;
 
   const double cmd_lean_angle = (velocity_P * chassis_vel_error) +

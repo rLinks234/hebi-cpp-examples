@@ -77,10 +77,10 @@ void Igor::update_pose_estimate() {
   for (size_t i = 0; i < 14; i++) {
     pose_gyros_.col(i).applyOnTheLeft(imu_frames_[i].topLeftCorner<3, 3>());
     if (any_nan(current_orientation_, i)) {
-      rpy_modules_.col(i) = std::numeric_limits<double>::quiet_NaN();
+      rpy_modules_.col(i) = Eigen::Vector3d::Constant(std::numeric_limits<double>::quiet_NaN());
     } else {
-      util::quat2rot<double, 4, 4>(current_orientation_.col(i), q_rot);
-      q_rot.applyOnRight(imu_frames_[i].topLeftCorner<3, 3>().transpose());
+      util::quat2rot<double, 3, 3>(current_orientation_.col(i).cast<double>(), q_rot);
+      q_rot.applyOnTheRight(imu_frames_[i].topLeftCorner<3, 3>().transpose());
       util::rot2ea<double, 3, 3>(q_rot, ea);
       rpy_modules_.col(i) = ea;
     }
@@ -147,8 +147,8 @@ void Igor::calculate_lean_angle() {
 
   // Rotate by the pitch angle about the Y axis,
   // followed by rotating by the roll angle about the X axis
-  util::rotateX(roll_rotation_, roll_angle_);
-  util::rotateY(pitch_rotation_, pitch_angle_);
+  util::rotateX<double, 3>(roll_rotation_, roll_angle_);
+  util::rotateY<double, 3>(pitch_rotation_, pitch_angle_);
   pose_.topLeftCorner<3, 3>() = pitch_rotation_ * roll_rotation_;
 
   // rad/s
@@ -171,7 +171,7 @@ void Igor::calculate_lean_angle() {
   // Update Igor's center of mass by applying the transforms in the following order:
   //  1) pitch rotation
   //  2) roll rotation
-  pose_.topLeftCorner<3, 3>().applyOnTheRight(line_com_);
+  line_com_.applyOnTheLeft(pose_.topLeftCorner<3, 3>());
 
   // Update CoM of legs based on current pose estimate from calculated lean angle
   left_leg_.current_com_frame_at<0>().applyOnTheLeft(pose_);
@@ -187,6 +187,8 @@ void Igor::calculate_lean_angle() {
 void Igor::soft_startup() {
   // TODO
 }
+
+static constexpr double US_TO_S = 1.0 / 1000000.0;
 
 static double get_diff_rx_time(GroupFeedback& fbk,
                                std::array<uint64_t, 14>& last_time,
@@ -207,7 +209,28 @@ static double get_diff_rx_time(GroupFeedback& fbk,
     }
   }
 
-  // FIXME: FINISH IMPLEMENTING
+  uint64_t sum = 0;
+  size_t numNonZero = 0;
+
+  for (size_t i = 0; i < 14; i++) {
+    auto diff = diff_time[i];
+    if (diff > 0) {
+      numNonZero++;
+      sum += diff;
+    }
+  }
+
+  if (numNonZero == 0) {
+    // This is pretty bad. Should warn or somtehing
+    // Just be hacky and return default dt of 0.01;
+    return 0.01;
+  }
+
+  uint64_t micros = sum / numNonZero;
+  uint64_t us_to_s_mod = micros % 1000000;
+  double secs = static_cast<double>(micros / 1000000);
+  secs += static_cast<double>(us_to_s_mod) * US_TO_S;
+  return secs;
 }
 
 template<typename T>
@@ -235,8 +258,8 @@ void Igor::spin_once(bool bc) {
     auto& imu = feedback.imu();
     current_position_[i] = actuator.position().get();
     current_position_command_[i] = actuator.positionCommand().get();
-    const double velocity = actuator.velocity().get();
-    const double velocityCommand = actuator.velocityCommand().get();
+    const float velocity = actuator.velocity().get();
+    const float velocityCommand = actuator.velocityCommand().get();
     current_velocity_[i] = velocity;
     current_velocity_command_[i] = velocityCommand;
     current_velocity_error_[i] = velocityCommand - velocity;
@@ -251,10 +274,10 @@ void Igor::spin_once(bool bc) {
   }
 
   // TODO: optionally parallelize this
-  left_leg_.on_feedback_received(current_position_);
-  right_leg_.on_feedback_received(current_position_command_);
-  left_arm_.on_feedback_received(current_velocity_);
-  right_arm_.on_feedback_received(current_velocity_error_);
+  left_leg_.on_feedback_received(current_position_, current_position_command_, current_velocity_, current_velocity_error_);
+  right_leg_.on_feedback_received(current_position_, current_position_command_, current_velocity_, current_velocity_error_);
+  left_arm_.on_feedback_received(current_position_, current_position_command_, current_velocity_, current_velocity_error_);
+  right_arm_.on_feedback_received(current_position_, current_position_command_, current_velocity_, current_velocity_error_);
 
   update_com();
   update_pose_estimate();
@@ -420,7 +443,9 @@ void Igor::start() {
   // TODO: load gains
 
   std::condition_variable start_condition;
-  std::thread proc_thread(&Igor::perform_start, this, start_condition);
+  // std::thread constructor passes arguments by copy.
+  // Since we need a ref to the cv, use std::ref
+  std::thread proc_thread(&Igor::perform_start, this, std::ref(start_condition));
   start_condition.wait(lock);
 }
 

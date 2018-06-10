@@ -16,33 +16,33 @@ template<typename S> using Vector3 = Eigen::Matrix<S, 3, 1>;
 
 namespace detail {
 
-template<typename T, typename Scalar>
+template<typename T, typename S>
 void rotateX(T& matrix, S angle) {
   static_assert(std::is_floating_point<S>::value, "Matrix scalar type must be floating point");
-  const Scalar c = std::cos(angle);
-  const Scalar s = std::sin(angle);
+  const S c = std::cos(angle);
+  const S s = std::sin(angle);
   matrix(1, 1) = c;
   matrix(2, 1) = s;
   matrix(1, 2) = -s;
   matrix(2, 2) = c;
 }
 
-template<typename T, typename Scalar>
+template<typename T, typename S>
 void rotateY(T& matrix, S angle) {
   static_assert(std::is_floating_point<S>::value, "Matrix scalar type must be floating point");
-  const Scalar c = std::cos(angle);
-  const Scalar s = std::sin(angle);
+  const S c = std::cos(angle);
+  const S s = std::sin(angle);
   matrix(0, 0) = c;
   matrix(0, 2) = s;
   matrix(2, 0) = -s;
   matrix(2, 2) = c;
 }
 
-template<typename T, typename Scalar>
+template<typename T, typename S>
 void rotateZ(T& matrix, S angle) {
   static_assert(std::is_floating_point<S>::value, "Matrix scalar type must be floating point");
-  const Scalar c = std::cos(angle);
-  const Scalar s = std::sin(angle);
+  const S c = std::cos(angle);
+  const S s = std::sin(angle);
   matrix(0, 0) = c;
   matrix(0, 1) = s;
   matrix(1, 0) = -s;

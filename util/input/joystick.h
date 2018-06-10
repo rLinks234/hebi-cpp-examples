@@ -19,6 +19,10 @@ struct HatValue {
 template <typename ValueT>
 class JoystickElement {
 
+public:
+
+  using EventHandler = std::function<void(uint32_t, ValueT)>;
+
 private:
 
   ValueT value_;
@@ -31,14 +35,22 @@ private:
   void wait_for_next(uint32_t timeout_ms=0) {
     // TODO: do timeout
     std::unique_lock<std::mutex> lock(val_lock_);
-    cv_.wait(val_lock_);
+    cv_.wait(lock);
   }
 
 public:
 
-  using EventHandler = std::function<void(uint32_t, ValueT)>;
-
   JoystickElement() = delete;
+  JoystickElement& operator=(const JoystickElement<ValueT>&) = delete;
+
+  JoystickElement(const JoystickElement<ValueT>& o)
+      : value_(o.value_), timestamp_(o.timestamp_), name_(o.name_),
+        callbacks_(o.callbacks_) {}
+
+  JoystickElement(JoystickElement<ValueT>&& o)
+    : value_(o.value_), timestamp_(o.timestamp_), name_(std::move(o.name_)),
+    callbacks_(std::move(o.callbacks_)) {}
+
   JoystickElement(const std::string& name="") : name_(name) {
     ValueT val{};
     update(0, val);
@@ -78,7 +90,7 @@ public:
     return value_;
   }
 
-  ValueT get_next(uint32_t& timestamp, uint32_t timeout_ms=0) {
+  ValueT get_next(uint32_t& timestamp, uint32_t timeout_ms) {
     wait_for_next(timeout_ms);
     timestamp = timestamp_;
     return value_;
@@ -99,6 +111,8 @@ class Joystick {
 
 private:
 
+  struct ctor_key {};
+
   friend class JoystickDispatcher;
 
   uint32_t num_axes_;
@@ -107,14 +121,12 @@ private:
   size_t index_;
   std::string name_;
   std::string guid_;
-  SDL_Joystick* joystick_
+  SDL_Joystick* joystick_;
   SDL_GameController* game_controller_;
 
   std::vector<JoystickElement<float>> axis_events_;
   std::vector<JoystickElement<HatValue>> hat_events_;
   std::vector<JoystickElement<bool>> button_events_;
-
-  Joystick(SDL_Joystick* joystick, SDL_GameController* game_controller);
 
   static void set_at(size_t index, SDL_Joystick* joystick, SDL_GameController* game_controller);
 
@@ -126,6 +138,8 @@ public:
 
 //------------------------------------------------------------------------------
 
+  Joystick(size_t index, SDL_Joystick* joystick,
+           SDL_GameController* game_controller, ctor_key);
   Joystick() = delete;
   Joystick(const Joystick&) = delete;
   Joystick(Joystick&&) = delete;

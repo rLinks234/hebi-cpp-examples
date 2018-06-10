@@ -17,7 +17,7 @@ void Leg<NegateDirection>::setup_leg() {
   Matrix4d base_frame = Matrix4d::Identity();
   hip_transform_ = base_frame;
 
-  util::rotateX(hip_transform_, pi_half);
+  util::rotateX<double, 4>(hip_transform_, pi_half);
   hip_transform_(1, 3) = 0.0225;
   hip_transform_(2, 3) = 0.055;
 
@@ -30,16 +30,16 @@ void Leg<NegateDirection>::setup_leg() {
   home_hip_angle_ = 3.839724354387525;   // 220 degrees
 
   base_frame(1, 3) = Direction * 0.15;
-  util::rotateX(base_frame, -Direction * pi_half);
+  util::rotateX<double, 4>(base_frame, -Direction * pi_half);
   home_angles_[0] = Direction * home_hip_angle_;
   home_angles_[1] = Direction * home_knee_angle_;
 
   robot_.setBaseFrame(base_frame);
 
-  Eigen::VectorXd masses(CoMFrameCount);
+  Eigen::VectorXd masses(2);
   robot_.getMasses(masses);
   set_mass(masses.sum());
-  masses_ = masses.segment<CoMFrameCount>(0);
+  masses_ = masses.segment<2>(0);
 
 }
 
@@ -55,7 +55,7 @@ bool Leg<NegateDirection>::should_limit_knee_velocity() {
 template<bool NegateDirection>
 void Leg<NegateDirection>::update_position() {
   LegBase::update_position();
-  robot_.getEndEffector(current_position_command_,
+  robot_.getEndEffector(feedback_position_command_,
                         /*output=*/ current_command_tip_fk_);
 }
 

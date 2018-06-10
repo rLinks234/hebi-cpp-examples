@@ -10,13 +10,13 @@ void PeripheralBody<DoFCount, OutputFrameCount, CoMFrameCount>::
   static_assert(DoFCount > 0, "DoFCount must be > 0");
   static_assert(CoMFrameCount > 0, "CoMFrameCount must be > 0");
 
-  robot_model::RobotModel::MatrixXdVector com_frames(CoMFrameCount);
-  robot_model::RobotModel::Matrix4dVector fk_frames(OutputFrameCount);
+  robot_model::Matrix4dVector com_frames(CoMFrameCount);
+  robot_model::Matrix4dVector fk_frames(OutputFrameCount);
   Eigen::VectorXd pos(DoFCount);
   pos.segment<DoFCount>(0) = feedback_position_;
 
-  robot_.getFK(HebiFrameTypeCenterOfMass, pos, com_frames); // current_coms_
-  robot_.getFK(HebiFrameTypeOutput, pos, fk_frames); // current_fk_
+  robot_.getFK(HebiFrameTypeCenterOfMass, pos, com_frames);
+  robot_.getFK(HebiFrameTypeOutput, pos, fk_frames);
 
   for (size_t i = 0; i < OutputFrameCount; i++) {
     current_coms_[i] = com_frames[i];
@@ -31,15 +31,16 @@ void PeripheralBody<DoFCount, OutputFrameCount, CoMFrameCount>::
   Eigen::MatrixXd jacobian_endeffector(6, DoFCount);
   robot_.getJEndEffector(pos, jacobian_endeffector);
   // TODO: Don't do this so hackily
-  std::memcpy(current_jacobian_actual_.data(), jacobian_endeffector.data(), sizeof(6 * DoFCount * sizeof(double)));
+  std::memcpy(current_jacobians_actual_.data(), jacobian_endeffector.data(), sizeof(6 * DoFCount * sizeof(double)));
 
   pos.segment<DoFCount>(0) = feedback_position_command_;
   robot_.getJEndEffector(pos, jacobian_endeffector);
   // TODO: Don't do this so hackily
-  std::memcpy(current_jacobian_expected_.data(), jacobian_endeffector.data(), sizeof(6 * DoFCount * sizeof(double)));
+  std::memcpy(current_jacobians_expected_.data(), jacobian_endeffector.data(), sizeof(6 * DoFCount * sizeof(double)));
 
   for (size_t i = 0; i < CoMFrameCount; i++) {
-    current_xyz_.col(i) = current_coms_[i].topRightCorner<3, 1>();
+    Eigen::Matrix4d& mat = current_coms_[i];
+    current_xyz_.col(i) = mat.topRightCorner<3, 1>();
   }
 
   {

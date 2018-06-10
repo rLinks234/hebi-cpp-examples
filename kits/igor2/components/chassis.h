@@ -11,11 +11,11 @@ class Chassis : public BaseBody {
 
 private:
 
-  static constexpr NumCommands = 6;
+  static constexpr size_t NumCommands = 6;
 
   void create_trajectory();
 
-  PIDController velocity_controller_(15.0, 0.1, 0.3);
+  PIDController velocity_controller_{15.0, 0.1, 0.3};
   double user_commanded_directional_velocity_{0.0};
   double user_commanded_yaw_velocity_{0.0};
   double minimum_ramp_time_{0.5};
@@ -115,7 +115,7 @@ public:
 
   Vector3d calculated_grip_velocity() const {
     Vector3d ret;
-    ret = velocities_.segment<3>(3);
+    ret = velocities_.col(0).segment<3>(3);
     return ret;
   }
 

@@ -1,5 +1,6 @@
 #include "util/input/joystick.h"
 
+#include <cassert>
 #include <condition_variable>
 #include <mutex>
 
@@ -27,7 +28,8 @@ static std::vector<std::shared_ptr<Joystick>> sJoysticks;
 
 //------------------------------------------------------------------------------
 
-Joystick::Joystick(size_t index, SDL_Joystick* joystick, SDL_GameController* game_controller)
+Joystick::Joystick(size_t index, SDL_Joystick* joystick,
+    SDL_GameController* game_controller, ctor_key /*unused*/)
   : index_(index), joystick_(joystick), game_controller_(game_controller) {
   num_axes_ = SDL_JoystickNumAxes(joystick);
   num_hats_ = SDL_JoystickNumHats(joystick);
@@ -37,9 +39,15 @@ Joystick::Joystick(size_t index, SDL_Joystick* joystick, SDL_GameController* gam
   hat_events_.reserve(num_hats_);
   button_events_.reserve(num_buttons_);
 
-  axis_events_.insert(axis_events_.begin(), num_axes_, JoystickElement<float>());
-  hat_events_.insert(hat_events_.begin(), num_hats_, JoystickElement<HatValue>());
-  button_events_.insert(button_events_.begin(), num_buttons_, JoystickElement<bool>());
+  for (size_t i = 0; i < num_axes_; i++) {
+    axis_events_.emplace_back("");
+  }
+  for (size_t i = 0; i < num_hats_; i++) {
+    hat_events_.emplace_back("");
+  }
+  for (size_t i = 0; i < num_buttons_; i++) {
+    button_events_.emplace_back("");
+  }
 
   name_ = SDL_GameControllerName(game_controller);
 
@@ -70,7 +78,7 @@ void Joystick::set_at(size_t index, SDL_Joystick* joystick, SDL_GameController* 
       sJoysticks.push_back(std::shared_ptr<Joystick>(nullptr));
     }
   }
-  sJoysticks[index] = std::make_shared<Joystick>(joystick, game_controller);
+  sJoysticks[index] = std::make_shared<Joystick>(index, joystick, game_controller, ctor_key{});
 }
 
 //------------------------------------------------------------------------------
@@ -114,7 +122,7 @@ std::string Joystick::get_axis_name(size_t axis) const {
     // TODO: either throw exception, or return invalid name
     return "Invalid";
   }
-  return axis_events_[button].name();
+  return axis_events_[axis].name();
 }
 
 std::string Joystick::name() const {

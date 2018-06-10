@@ -1,5 +1,7 @@
 #include "util/input/event_handler.h"
+#include "util/input/joystick.h"
 
+#include <cassert>
 #include <chrono>
 #include <cmath>
 #include <condition_variable>
@@ -17,7 +19,10 @@ using steady_clock = std::chrono::steady_clock;
 // If high_resolution_clock is steady, use it. Otherwise, fallback to steady_clock.
 using clock_type = typename std::conditional<high_res_clock::is_steady, high_res_clock, steady_clock>::type;
 
-using microsec_cast = std::chrono::duration_cast<std::chrono::microseconds>;
+template<typename T>
+uint64_t microsec_cast(T&& d) {
+  return static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::microseconds>(d).count());
+}
 
 static void sleep_us(uint64_t us) {
   std::this_thread::sleep_for(std::chrono::microseconds(us));
@@ -30,7 +35,7 @@ class SDLEventHandler {
   
 private:
 
-  std::map<SDL_EventType, SDLEventCallback> event_handlers_;
+  std::map<SDL_EventType, std::vector<SDLEventCallback>> event_handlers_;
   std::mutex lock_;
 
   clock_type::time_point last_event_loop_time_;
@@ -41,7 +46,7 @@ private:
   bool keep_running_{true};
 
   void dispatch_event(const SDL_Event& event) {
-    SDL_EventType type = event.type;
+    SDL_EventType type = static_cast<SDL_EventType>(event.type);
     auto iter = event_handlers_.find(type);
     if (iter == event_handlers_.end()) {
       return;
@@ -117,12 +122,15 @@ public:
     std::lock_guard<std::mutex> lock(lock_);
     auto& handlers = event_handlers_[event];
 
+    // This doesn't work. Is there an easy way to get ptr to function?
+#if 0
     // check if the callback was already added. If it was, don't add it again
     for (auto& handler : handlers) {
       if (handler == callback) {
         return;
       }
     }
+#endif
 
     handlers.push_back(callback);
   }
@@ -134,7 +142,7 @@ public:
     }
 
     std::condition_variable start_condition;
-    std::thread proc_thread(&SDLEventHandler::run, this, start_condition);
+    std::thread proc_thread(&SDLEventHandler::run, this, std::ref(start_condition));
     start_condition.wait(lock);
   }
 
@@ -145,7 +153,7 @@ static SDLEventHandler sSingleton;
 //------------------------------------------------------------------------------
 // Built in event handlers
 
-static inline float axis_value(uint8_t value) {
+static inline float axis_value(int16_t value) {
   return static_cast<float>(static_cast<double>(value) * 0.0000305185);
 }
 
@@ -156,11 +164,16 @@ static inline HatValue hat_value(uint8_t value) {
     ret.y = 1;
   } else if (value & SDL_HAT_DOWN) {
     ret.y = -1;
+  } else {
+    ret.y = 0;
   }
+
   if (value & SDL_HAT_RIGHT) {
     ret.x = 1;
   } else if (value & SDL_HAT_LEFT) {
     ret.x = -1;
+  } else {
+    ret.x = 0;
   }
 
   return ret;
@@ -202,7 +215,7 @@ public:
       return;
     }
 
-    joystick->on_axis_motion(ts, axis, axis_value(axis_event.value));
+    joystick->on_axis_event(ts, axis, axis_value(axis_event.value));
   }
 
   static void joystick_hat_event(const SDL_Event& event) {
@@ -219,7 +232,7 @@ public:
       return;
     }
 
-    joystick->on_hat_event(ts, axis, hat_value(hat_event.value));
+    joystick->on_hat_event(ts, hat, hat_value(hat_event.value));
   }
 
   static void joystick_button_event(const SDL_Event& event) {
@@ -236,7 +249,7 @@ public:
       return;
     }
 
-    joystick->on_button_event(ts, axis, button_value(button_event.value));
+    joystick->on_button_event(ts, button, button_value(button_event.state));
   }
 
 };
@@ -244,11 +257,11 @@ public:
 //------------------------------------------------------------------------------
 // Event handler initializer
 
-struct EventHandlerInitializer() {
+struct EventHandlerInitializer {
 
   EventHandlerInitializer() {
-    register_event(SDL_JOYAXISMOTION, JoystickDispatcher::joystick_axis_motion);
-    register_event(SDL_JOYHATMOTION, JoystickDispatcher::joystick_hat_motion);
+    register_event(SDL_JOYAXISMOTION, JoystickDispatcher::joystick_axis_event);
+    register_event(SDL_JOYHATMOTION, JoystickDispatcher::joystick_hat_event);
     register_event(SDL_JOYBUTTONDOWN, JoystickDispatcher::joystick_button_event);
     register_event(SDL_JOYBUTTONUP, JoystickDispatcher::joystick_button_event);
     register_event(SDL_JOYDEVICEADDED, JoystickDispatcher::joystick_added);
@@ -256,18 +269,18 @@ struct EventHandlerInitializer() {
     sSingleton.start();
   }
 
-}
+};
 
 //------------------------------------------------------------------------------
 // Public API
 
+void initialize_event_handler() {
+  static EventHandlerInitializer initializer;
+}
+
 void register_event(SDL_EventType event, SDLEventCallback callback) {
   initialize_event_handler();
   sSingleton.register_event(event, callback);
-}
-
-void initialize_event_handler() {
-  static EventHandlerInitializer initializer;
 }
 
 }

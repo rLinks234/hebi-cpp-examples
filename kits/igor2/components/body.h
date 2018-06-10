@@ -165,7 +165,7 @@ public:
     return current_tip_fk_;
   }
 
-  const Eigen::Matrix4d& base_frame() const {
+  Eigen::Matrix4d base_frame() const {
     return robot_.getBaseFrame();
   }
 

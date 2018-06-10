@@ -101,7 +101,6 @@ static void arm_z_vel_event_r(Igor& igor, uint32_t ts, float axis_value) {
  * are not being pressed. If this condition is not satisfied, then this function
  * does nothing.
  */
-template <typename Functor>
 static void zero_arm_z_event(Igor& igor, uint32_t ts, bool pressed) {
   auto joy = igor.joystick();
   if (both_triggers_released(joy)) {
@@ -183,7 +182,7 @@ static void stance_height_triggers_event(Igor& igor, const Functor& vel_calc, ui
   if (joy->get_current_button_state(OPTIONS))
     return;
 
-  auto velocity = vel_calc();
+  auto velocity = vel_calc(joy);
   igor.left_leg().set_knee_velocity(velocity);
   igor.right_leg().set_knee_velocity(velocity);
 }
@@ -202,7 +201,7 @@ static void stance_height_event(Igor& igor, const Functor& vel_calc, uint32_t ts
       //igor.request_stop()
     }
   } else {
-    auto velocity = vel_calc();
+    auto velocity = vel_calc(igor.joystick());
     igor.left_leg().set_knee_velocity(velocity);
     igor.right_leg().set_knee_velocity(velocity);
   }
@@ -268,24 +267,25 @@ static float sign(float v) {
 // Public API
 //------------------------------------------------------------------------------
 
-void register_igor_event_handlers(Igor& igor) {
+void register_igor_event_handlers(Igor& igor_) {
 
-  auto joystick = igor.joystick();
+  Igor* igor = &igor_;
+  auto joystick = igor->joystick();
 
   // ----------------------------------------------
   // Functions to be passed to event handlers below
 
-  auto arm_x_deadzone = [] (float val) -> bool {
-    return static_cast<double>(std::abs(val)) <= igor.joystick_dead_zone()*3.0; };
+  auto arm_x_deadzone = [=] (float val) -> bool {
+    return static_cast<double>(std::abs(val)) <= igor->joystick_dead_zone()*3.0; };
 
-  auto arm_y_deadzone = [] (float val) -> bool {
-    return static_cast<double>(std::abs(val)) <= igor.joystick_dead_zone(); };
+  auto arm_y_deadzone = [=] (float val) -> bool {
+    return static_cast<double>(std::abs(val)) <= igor->joystick_dead_zone(); };
 
-  auto stance_height_calc = [] (std::shared_ptr<util::Joystick> joystick) -> double {
+  auto stance_height_calc = [=] (std::shared_ptr<util::Joystick> joystick) -> double {
     float l_val = joystick->get_current_axis_state(LEFT_TRIGGER);
     float r_val = joystick->get_current_axis_state(RIGHT_TRIGGER);
     double d_ax = static_cast<double>(l_val)-static_cast<double>(r_val);
-    if (std::abs(d_ax) > igor.joystick_dead_zone())
+    if (std::abs(d_ax) > igor->joystick_dead_zone())
       return 0.5*d_ax;
     return 0.0; };
 
@@ -298,46 +298,46 @@ void register_igor_event_handlers(Igor& igor) {
   // ------------
   // Quit Session
 
-  auto quit_session = [] (uint32_t ts, bool pressed) {
-    quit_session_event(igor, ts, pressed); };
+  auto quit_session = [=] (uint32_t ts, bool pressed) {
+    quit_session_event(*igor, ts, pressed); };
   joystick->add_button_event_handler(std::string("SHARE"), quit_session);
 
   // ---------------
   // Toggle Balancer
 
-  auto balance_controller = [] (uint32_t ts, bool pressed) {
-    balance_controller_event(igor, ts, pressed); };
+  auto balance_controller = [=] (uint32_t ts, bool pressed) {
+    balance_controller_event(*igor, ts, pressed); };
   joystick->add_button_event_handler(std::string("TOUCHPAD"), balance_controller);
 
   // -----------------------
   // Left Arm event handlers
 
   // Reacts to left stick Y-axis
-  auto arm_x_vel = [] (uint32_t ts, float value) {
-    arm_x_vel_event(igor, arm_x_deadzone, ts, value); };
+  auto arm_x_vel = [=] (uint32_t ts, float value) {
+    arm_x_vel_event(*igor, arm_x_deadzone, ts, value); };
   joystick->add_axis_event_handler(std::string("LEFT_STICK_Y"), arm_x_vel);
 
   // Reacts to left stick X-axis
-  auto arm_y_vel = [] (uint32_t ts, float value) {
-    arm_y_vel_event(igor, arm_y_deadzone, ts, value); };
+  auto arm_y_vel = [=] (uint32_t ts, float value) {
+    arm_y_vel_event(*igor, arm_y_deadzone, ts, value); };
   joystick->add_axis_event_handler(std::string("LEFT_STICK_X"), arm_y_vel);
 
   // Reacts to left trigger axis
-  auto arm_z_vel_lt = [] (uint32_t ts, float value) {
-    arm_z_vel_event_l(igor, ts, value); };
+  auto arm_z_vel_lt = [=] (uint32_t ts, float value) {
+    arm_z_vel_event_l(*igor, ts, value); };
   joystick->add_axis_event_handler(std::string("LEFT_TRIGGER"), arm_z_vel_lt);
 
   // Reacts to right trigger axis
-  auto arm_z_vel_rt = [] (uint32_t ts, float value) {
-    arm_z_vel_event_r(igor, ts, value); };
+  auto arm_z_vel_rt = [=] (uint32_t ts, float value) {
+    arm_z_vel_event_r(*igor, ts, value); };
   joystick->add_axis_event_handler(std::string("RIGHT_TRIGGER"), arm_z_vel_rt);
 
   // ------------------------
   // Both Arms event handlers
 
   // Reacts to triggers pressed/released
-  auto zero_arm_z = [] (uint32_t ts, bool value) {
-    zero_arm_z_event(igor, ts, value); };
+  auto zero_arm_z = [=] (uint32_t ts, bool value) {
+    zero_arm_z_event(*igor, ts, value); };
   joystick->add_button_event_handler(std::string("LEFT_TRIGGER"), zero_arm_z);
   joystick->add_button_event_handler(std::string("RIGHT_TRIGGER"), zero_arm_z);
 
@@ -349,25 +349,25 @@ void register_igor_event_handlers(Igor& igor) {
   // Chassis event handlers
 
   // Reacts to right stick Y-axis
-  auto chassis_velocity = [] (uint32_t ts, float value) {
-    chassis_velocity_event(igor, arm_y_deadzone, ts, value); };
+  auto chassis_velocity = [=] (uint32_t ts, float value) {
+    chassis_velocity_event(*igor, arm_y_deadzone, ts, value); };
   joystick->add_axis_event_handler(std::string("RIGHT_STICK_Y"), chassis_velocity);
 
   // Reacts to right stick X-axis
-  auto chassis_yaw = [] (uint32_t ts, float value) {
-    chassis_yaw_event(igor, arm_y_deadzone, ts, value); };
+  auto chassis_yaw = [=] (uint32_t ts, float value) {
+    chassis_yaw_event(*igor, arm_y_deadzone, ts, value); };
   joystick->add_axis_event_handler(std::string("RIGHT_STICK_X"), chassis_yaw);
 
   // -------------
   // Stance height
 
-  auto stance_height_trigger = [] (uint32_t ts, float value) {
-    stance_height_triggers_event(igor, stance_height_calc, ts, value); };
+  auto stance_height_trigger = [=] (uint32_t ts, float value) {
+    stance_height_triggers_event(*igor, stance_height_calc, ts, value); };
   joystick->add_axis_event_handler(std::string("LEFT_TRIGGER"), stance_height_trigger);
   joystick->add_axis_event_handler(std::string("RIGHT_TRIGGER"), stance_height_trigger);
 
-  auto stance_height = [] (uint32_t ts, bool value) {
-    stance_height_event(igor, stance_height_calc, ts, value); };
+  auto stance_height = [=] (uint32_t ts, bool value) {
+    stance_height_event(*igor, stance_height_calc, ts, value); };
   joystick->add_button_event_handler(std::string("OPTIONS"), stance_height);
 }
 
