@@ -104,8 +104,8 @@ void Arm<NegateDirection>::setup_arm() {
 template <bool NegateDirection>
 void Arm<NegateDirection>::update_position() {
   ArmBase::update_position();
-  current_determinant_actual_ = current_jacobians_actual_.determinant();
-  current_determinant_expected_ = current_jacobians_expected_.determinant();
+  current_determinant_actual_ = current_jacobians_actual_.topLeftCorner<4, 4>().determinant();
+  current_determinant_expected_ = current_jacobians_expected_.topLeftCorner<4, 4>().determinant();
 }
 
 //------------------------------------------------------------------------------

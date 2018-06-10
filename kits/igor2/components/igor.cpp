@@ -42,12 +42,12 @@ void Igor::update_com() {
 }
 
 template<typename T>
-static bool any_nan(const T& mat, size_t Row) {
+static bool any_nan(const T& mat, size_t Col) {
   return (
-    std::isnan(mat(Row, 0)) ||
-    std::isnan(mat(Row, 1)) ||
-    std::isnan(mat(Row, 2)) ||
-    std::isnan(mat(Row, 3))
+    std::isnan(mat(0, Col)) ||
+    std::isnan(mat(1, Col)) ||
+    std::isnan(mat(2, Col)) ||
+    std::isnan(mat(3, Col))
   );
 }
 
