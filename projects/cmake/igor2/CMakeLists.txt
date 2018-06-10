@@ -30,7 +30,8 @@ add_library(hebi_cpp SHARED ${HEBI_CPP_SOURCES})
 
 set(hebi_input_src
   ${ROOT_DIR}/util/input/event_handler.cpp
-  ${ROOT_DIR}/util/input/joystick.cpp)
+  ${ROOT_DIR}/util/input/joystick.cpp
+  ${ROOT_DIR}/util/input/joystick_mapper.cpp)
 
 set(igor2_driver_src
   ${ROOT_DIR}/kits/igor2/igor2_demo.cpp)

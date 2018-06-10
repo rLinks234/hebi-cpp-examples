@@ -115,6 +115,7 @@ private:
   struct ctor_key {};
 
   friend class JoystickDispatcher;
+  friend class JoystickMapper;
 
   uint32_t num_axes_;
   uint32_t num_hats_;

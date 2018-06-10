@@ -70,6 +70,9 @@ Joystick::~Joystick() {
   }
 }
 
+// in joystick_mapper.cpp
+void map_joystick(std::shared_ptr<Joystick> joy);
+
 void Joystick::set_at(size_t index, SDL_Joystick* joystick, SDL_GameController* game_controller) {
   std::lock_guard<std::mutex> lock(sJoystickLock);
   if (sJoysticks.size() < (index + 1)) {
@@ -78,7 +81,9 @@ void Joystick::set_at(size_t index, SDL_Joystick* joystick, SDL_GameController* 
       sJoysticks.push_back(std::shared_ptr<Joystick>(nullptr));
     }
   }
-  sJoysticks[index] = std::make_shared<Joystick>(index, joystick, game_controller, ctor_key{});
+  auto joy = std::make_shared<Joystick>(index, joystick, game_controller, ctor_key{});
+  map_joystick(joy);
+  sJoysticks[index] = joy;
 }
 
 void Joystick::add_axis_alias(const char* alias, size_t axis) {
