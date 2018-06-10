@@ -27,6 +27,7 @@ private:
 
   // 
   std::mutex value_lock_;
+  std::condition_variable finished_cv_;
   std::mutex state_lock_;
 
   //----------------------------------------------------------------------------
@@ -123,6 +124,7 @@ public:
   void start();
   void request_stop();
   void set_balance_controller_state(bool enabled);
+  void wait_for();
 
 //------------------------------------------------------------------------------
 // Accessors

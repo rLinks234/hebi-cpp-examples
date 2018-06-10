@@ -354,7 +354,11 @@ void Igor::spin_once(bool bc) {
 }
 
 void Igor::stop_controller() {
-  // TODO
+  auto duration = stop_time_ - start_time_;
+  double sec = static_cast<double>(std::chrono::duration_cast<std::chrono::milliseconds>(duration).count())*MILLI_TO_SEC;
+  double freq = static_cast<double>(static_cast<double>(num_spins_) / sec);
+  finished_cv_.notify_all();
+  printf("ran for %.3f seconds.\nAverage frequency: %.3f Hz\n", sec, freq);
 }
 
 void Igor::start_controller() {
@@ -404,6 +408,9 @@ void Igor::start_controller() {
   }
 
   stop_time_ = std::chrono::high_resolution_clock::now();
+
+  // Need to make sure to unlock here!
+  state_lock_.unlock();
   stop_controller();
 
 }
@@ -473,6 +480,14 @@ void Igor::request_stop() {
 void Igor::set_balance_controller_state(bool enabled) {
   std::lock_guard<std::mutex> lock(state_lock_);
   balance_controller_enabled_ = enabled;
+}
+
+void Igor::wait_for() {
+  std::unique_lock<std::mutex> lock(state_lock_);
+  if (!started_) {
+    return;
+  }
+  finished_cv_.wait(lock);
 }
 
 }

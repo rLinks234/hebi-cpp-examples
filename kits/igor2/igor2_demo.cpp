@@ -12,10 +12,7 @@ int main(int argc, char** argv) {
     Igor* igor = new Igor();
 
     igor->start();
-
-    std::this_thread::sleep_for(std::chrono::milliseconds(5000));
-    std::this_thread::sleep_for(std::chrono::milliseconds(5000));
-    std::this_thread::sleep_for(std::chrono::milliseconds(50000));
+    igor->wait_for();
   } catch (...) {
     puts("Caught unknown exception");
   }
