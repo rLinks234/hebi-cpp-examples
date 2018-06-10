@@ -313,19 +313,23 @@ void register_igor_event_handlers(Igor& igor) {
   // Left Arm event handlers
 
   // Reacts to left stick Y-axis
-  auto arm_x_vel = funpart(arm_x_vel_event, igor, arm_x_deadzone)
+  auto arm_x_vel = [] (uint32_t ts, float value) {
+    arm_x_vel_event(igor, arm_x_deadzone, ts, value); };
   joystick->add_axis_event_handler(std::string("LEFT_STICK_Y"), arm_x_vel);
 
   // Reacts to left stick X-axis
-  auto arm_y_vel = funpart(arm_y_vel_event, igor, arm_y_deadzone)
+  auto arm_y_vel = [] (uint32_t ts, float value) {
+    arm_y_vel_event(igor, arm_y_deadzone, ts, value); };
   joystick->add_axis_event_handler(std::string("LEFT_STICK_X"), arm_y_vel);
 
   // Reacts to left trigger axis
-  auto arm_z_vel_lt = funpart(arm_z_vel_event_l, igor)
+  auto arm_z_vel_lt = [] (uint32_t ts, float value) {
+    arm_z_vel_event_l(igor, ts, value); };
   joystick->add_axis_event_handler(std::string("LEFT_TRIGGER"), arm_z_vel_lt);
 
   // Reacts to right trigger axis
-  auto arm_z_vel_rt = funpart(arm_z_vel_event_r, igor)
+  auto arm_z_vel_rt = [] (uint32_t ts, float value) {
+    arm_z_vel_event_r(igor, ts, value); };
   joystick->add_axis_event_handler(std::string("RIGHT_TRIGGER"), arm_z_vel_rt);
 
   // ------------------------
@@ -345,11 +349,13 @@ void register_igor_event_handlers(Igor& igor) {
   // Chassis event handlers
 
   // Reacts to right stick Y-axis
-  auto chassis_velocity = funpart(chassis_velocity_event, igor, arm_y_deadzone)
+  auto chassis_velocity = [] (uint32_t ts, float value) {
+    chassis_velocity_event(igor, arm_y_deadzone, ts, value); };
   joystick->add_axis_event_handler(std::string("RIGHT_STICK_Y"), chassis_velocity);
 
   // Reacts to right stick X-axis
-  auto chassis_yaw = funpart(chassis_yaw_event, igor, arm_y_deadzone)
+  auto chassis_yaw = [] (uint32_t ts, float value) {
+    chassis_yaw_event(igor, arm_y_deadzone, ts, value); };
   joystick->add_axis_event_handler(std::string("RIGHT_STICK_X"), chassis_yaw);
 
   // -------------

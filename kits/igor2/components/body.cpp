@@ -60,7 +60,7 @@ void PeripheralBody<DoFCount, OutputFrameCount, CoMFrameCount>::
 }
 
 template <size_t DoFCount, size_t OutputFrameCount, size_t CoMFrameCount>
-Trajectory PeripheralBody<DoFCount, OutputFrameCount, CoMFrameCount>::
+std::shared_ptr<hebi::trajectory::Trajectory> PeripheralBody<DoFCount, OutputFrameCount, CoMFrameCount>::
   create_home_trajectory(const Eigen::VectorXd& position,
                          double duration) {
   // TODO

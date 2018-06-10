@@ -33,8 +33,8 @@ private:
   alignas(64) Vector6d damper_gains_;
   alignas(64) Vector6d roll_gains_;
 
-  alignas(64) Matrix4d current_command_tip_fk_;
-  alignas(64) Matrix4d hip_transform_;
+  alignas(64) Eigen::Matrix4d current_command_tip_fk_;
+  alignas(64) Eigen::Matrix4d hip_transform_;
 
 protected:
 
@@ -48,7 +48,7 @@ public:
   virtual ~Leg() = default;
 
   Leg(std::mutex& lock, std::array<size_t, 2> group_indices)
-    : LegBase(lock), group_indices_(std::move(group_indices)) {
+    : LegBase(lock, std::move(group_indices)) {
     setup_leg();
   }
 

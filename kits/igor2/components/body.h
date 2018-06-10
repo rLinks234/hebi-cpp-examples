@@ -7,15 +7,9 @@
 #include <Eigen/Eigen>
 
 #include "robot_model.hpp"
+#include "trajectory.hpp"
 
 namespace hebi {
-
-using Vector3d = Eigen::Vector3d;
-using Vector3f = Eigen::Vector3f;
-using Vector6d = Eigen::Matrix<double, 6, 1>;
-using Vector6f = Eigen::Matrix<float, 6, 1>;
-using Matrix4f = Eigen::Matrix4f;
-using Matrix4d = Eigen::Matrix4d;
 
 class PIDController {
 
@@ -55,7 +49,7 @@ class BaseBody {
 private:
 
   double mass_;
-  Vector3d com_;
+  Eigen::Vector3d com_;
   std::mutex& lock_;
 
 protected:
@@ -93,7 +87,7 @@ public:
     return mass_;
   }
 
-  const Vector3d& com() const {
+  const Eigen::Vector3d& com() const {
     return com_;
   }
 
@@ -110,6 +104,8 @@ protected:
 
   template<typename S> using VectorDoF = Eigen::Matrix<S, DoFCount, 1>;
   template<typename S> using JacobianMatrix = Eigen::Matrix<S, 6, DoFCount>;
+  using Vector6f = Eigen::Matrix<float, 6, 1>;
+  using Vector6d = Eigen::Matrix<double, 6, 1>;
 
 private:
 
@@ -119,8 +115,8 @@ protected:
 
   hebi::robot_model::RobotModel robot_;
 
-  std::array<Matrix4d, OutputFrameCount> current_fk_;
-  std::array<Matrix4d, CoMFrameCount> current_coms_;
+  std::array<Eigen::Matrix4d, OutputFrameCount> current_fk_;
+  std::array<Eigen::Matrix4d, CoMFrameCount> current_coms_;
   
   alignas(16) VectorDoF<double> feedback_position_;
   alignas(16) VectorDoF<double> feedback_position_command_;
@@ -129,12 +125,12 @@ protected:
   alignas(16) VectorDoF<float> feedback_velocity_;
   alignas(16) VectorDoF<float> feedback_velocity_error_;
   
-  alignas(16) Vector3d xyz_error_;
+  alignas(16) Eigen::Vector3d xyz_error_;
   alignas(16) Vector6d position_error_;
   alignas(16) Vector6d impedance_error_;
   alignas(16) Vector6d velocity_error_;
 
-  alignas(64) Matrix4d current_tip_fk_;
+  alignas(64) Eigen::Matrix4d current_tip_fk_;
 
   alignas(64) JacobianMatrix<double> current_jacobians_actual_;
   alignas(64) JacobianMatrix<double> current_jacobians_expected_;
@@ -154,8 +150,8 @@ public:
   PeripheralBody(PeripheralBody<DoFCount, OutputFrameCount, CoMFrameCount>&&) = delete;
   virtual ~PeripheralBody() = default;
 
-  PeripheralBody(std::mutex& lock)
-    : BaseBody(lock) {
+  PeripheralBody(std::mutex& lock, std::array<size_t, DoFCount> indices)
+    : BaseBody(lock), group_indices_(indices) {
     // TODO
   }
 
@@ -165,11 +161,11 @@ public:
     return group_indices_;
   }
 
-  const Matrix4d& current_tip_fk() const {
+  const Eigen::Matrix4d& current_tip_fk() const {
     return current_tip_fk_;
   }
 
-  const Matrix4d& base_frame() const {
+  const Eigen::Matrix4d& base_frame() const {
     return robot_.getBaseFrame();
   }
 
@@ -180,7 +176,7 @@ public:
   }
 
   template<size_t Index>
-  Matrix4d& current_com_frame_at() {
+  Eigen::Matrix4d& current_com_frame_at() {
     static_assert(Index < OutputFrameCount, "");
     return current_fk_[Index];
   }
@@ -204,11 +200,11 @@ public:
     update_position();
   }
 
-  hebi::Trajectory create_home_trajectory(const Eigen::VectorXd& position,
+  std::shared_ptr<hebi::trajectory::Trajectory> create_home_trajectory(const Eigen::VectorXd& position,
                                           double duration=3.0);
 
   VectorXd get_grav_comp_efforts(const Eigen::VectorXd& positions,
-                                 const Vector3d& gravty);
+                                 const Eigen::Vector3d& gravty);
 
 };
 

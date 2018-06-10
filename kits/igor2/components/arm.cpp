@@ -171,7 +171,7 @@ void Arm<NegateDirection>::update_command(hebi::GroupCommand& group_command,
   size_t idx = 0;
   for (auto i : group_indices()) {
     auto& actuator = group_command[i].actuator();
-    actuator.position().set(joint_positions_[idx]);
+    actuator.position().set(joint_angles_[idx]);
     actuator.velocity().set(joint_velocities_[idx]);
     actuator.effort().set(joint_efforts_[idx]);
     idx++;

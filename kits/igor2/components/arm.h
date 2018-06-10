@@ -30,9 +30,9 @@ private:
   double current_determinant_expected_;
   double user_commanded_wrist_velocity_;
 
-  alignas(16) Vector3d user_commanded_grip_velocity_;
-  alignas(16) Vector3d grip_position_;
-  alignas(16) Vector3d new_grip_position_;
+  alignas(16) Eigen::Vector3d user_commanded_grip_velocity_;
+  alignas(16) Eigen::Vector3d grip_position_;
+  alignas(16) Eigen::Vector3d new_grip_position_;
 
   alignas(16) VectorDoF<double> joint_angles_;
   alignas(16) VectorDoF<double> grav_comp_torque_;
@@ -42,7 +42,7 @@ private:
   alignas(64) Vector6d damper_gains_;
   alignas(64) Vector6d spring_gains_;
 
-  alignas(64) Matrix4d home_ef_;
+  alignas(64) Eigen::Matrix4d home_ef_;
 
 protected:
 
@@ -56,20 +56,20 @@ public:
   virtual ~Arm() = default;
 
   Arm(std::mutex& lock, std::array<size_t, 4> group_indices)
-    : ArmBase(lock), group_indices_(std::move(group_indices)) {
+    : ArmBase(lock, std::move(group_indices)) {
     setup_arm();
   }
 
   /**
    * 
    */
-  void integrate_step(double dt, const Vector3d& calculated_grip_velocity);
+  void integrate_step(double dt, const Eigen::Vector3d& calculated_grip_velocity);
 
   /**
    * 
    */
   void update_command(hebi::GroupCommand& group_command,
-                      const Matrix4d& pose,
+                      const Eigen::Matrix4d& pose,
                       double soft_start);
 
   void set_x_velocity(double velocity);
@@ -77,7 +77,7 @@ public:
   void set_z_velocity(double velocity);
   void set_wrist_velocity(double velocity);
 
-  const Vector3d& user_commanded_grip_velocity() const {
+  const Eigen::Vector3d& user_commanded_grip_velocity() const {
     return user_commanded_grip_velocity_;
   }
 
