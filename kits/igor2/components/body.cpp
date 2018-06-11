@@ -32,13 +32,11 @@ update_position() {
 
   Eigen::MatrixXd jacobian_endeffector(6, DoFCount);
   robot_.getJEndEffector(pos, jacobian_endeffector);
-  // TODO: Don't do this so hackily
-  std::memcpy(current_jacobians_actual_.data(), jacobian_endeffector.data(), sizeof(6 * DoFCount * sizeof(double)));
+  current_jacobians_actual_ = jacobian_endeffector.topRightCorner<6, DoFCount>();
 
   pos.segment<DoFCount>(0) = feedback_position_command_;
   robot_.getJEndEffector(pos, jacobian_endeffector);
-  // TODO: Don't do this so hackily
-  std::memcpy(current_jacobians_expected_.data(), jacobian_endeffector.data(), sizeof(6 * DoFCount * sizeof(double)));
+  current_jacobians_expected_ = jacobian_endeffector.topRightCorner<6, DoFCount>();
 
   for (size_t i = 0; i < CoMFrameCount; i++) {
     Eigen::Matrix4d& mat = current_coms_[i];

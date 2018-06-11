@@ -451,8 +451,9 @@ void Igor::spin_once(bool bc) {
         effort *= soft_start;
       }
 
-      l_wheel.set(effort);
-      r_wheel.set(-effort);
+      const auto set_effort = static_cast<float>(effort);
+      l_wheel.set(set_effort);
+      r_wheel.set(-set_effort);
     } else {
       group_command_[0].actuator().effort().clear();
       group_command_[1].actuator().effort().clear();
@@ -466,8 +467,8 @@ void Igor::spin_once(bool bc) {
     l_wheel_vel = clip(l_wheel_vel, -max_wheel_velocity_, max_wheel_velocity_);
     r_wheel_vel = clip(r_wheel_vel, -max_wheel_velocity_, max_wheel_velocity_);
 
-    group_command_[0].actuator().velocity().set(l_wheel_vel);
-    group_command_[1].actuator().velocity().set(r_wheel_vel);
+    group_command_[0].actuator().velocity().set(static_cast<float>(l_wheel_vel));
+    group_command_[1].actuator().velocity().set(static_cast<float>(r_wheel_vel));
 
     // ------------
     // Leg Commands

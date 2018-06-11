@@ -34,7 +34,8 @@ public:
         "height_com: %.3f\n"
         "com: %.3f, %.3f, %.3f\n"
         "line_com: %.3f, %.3f, %.3f\n"
-        "ground_point: %.3f, %.3f, %.3f\n",
+        "ground_point: %.3f, %.3f, %.3f\n\n"
+        "=================================================\n\n",
         mass, roll_angle, pitch_angle,
         feedback_lean_angle, feedback_lean_angle_velocity,
         height_com,

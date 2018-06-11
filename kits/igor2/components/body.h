@@ -152,7 +152,10 @@ public:
 
   PeripheralBody(std::mutex& lock, std::array<size_t, DoFCount> indices)
     : BaseBody(lock), group_indices_(indices) {
-    // TODO
+    xyz_error_.setZero();
+    position_error_.setZero();
+    impedance_error_.setZero();
+    velocity_error_.setZero();
   }
 
 //

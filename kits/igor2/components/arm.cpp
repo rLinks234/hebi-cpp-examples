@@ -68,17 +68,15 @@ void Arm<NegateDirection>::setup_arm() {
 
   hebi_if_constexpr(NegateDirection) {
   // Right arm
-    base_frame(1, 3) = -0.10;
     mounting = robot_model::RobotModel::BracketType::X5HeavyRightInside;
-    home_angles_[1] = -shoulder_home_angle;
-    home_angles_[2] = -elbow_home_angle;
   } else {
   // Left Arm
-    base_frame(1, 3) = 0.10;
     mounting = robot_model::RobotModel::BracketType::X5HeavyLeftInside;
-    home_angles_[1] = shoulder_home_angle;
-    home_angles_[2] = elbow_home_angle;
   }
+
+  base_frame(1, 3) = Direction*0.10;
+  home_angles_[1] = Direction*shoulder_home_angle;
+  home_angles_[2] = Direction*elbow_home_angle;
 
   robot_.addBracket(mounting);
   robot_.addActuator(robot_model::RobotModel::ActuatorType::X5_9);
@@ -97,6 +95,7 @@ void Arm<NegateDirection>::setup_arm() {
   masses_ = masses.segment<CoMFrameCount>(0);
 
   grip_position_ = home_ef_.topRightCorner<3, 1>();
+  new_grip_position_ = grip_position_;
   joint_angles_ = home_angles_;
   joint_velocities_.setZero();
   joint_efforts_.setZero();
@@ -109,8 +108,8 @@ void Arm<NegateDirection>::setup_arm() {
 template <bool NegateDirection>
 void Arm<NegateDirection>::update_position() {
   ArmBase::update_position();
-  current_determinant_actual_ = current_jacobians_actual_.topLeftCorner<4, 4>().determinant();
-  current_determinant_expected_ = current_jacobians_expected_.topLeftCorner<4, 4>().determinant();
+  current_determinant_actual_ = current_jacobians_actual_.topLeftCorner<3, 3>().determinant();
+  current_determinant_expected_ = current_jacobians_expected_.topLeftCorner<3, 3>().determinant();
 }
 
 //------------------------------------------------------------------------------
@@ -163,13 +162,13 @@ template <bool NegateDirection>
 void Arm<NegateDirection>::update_command(hebi::GroupCommand& group_command,
                                           const Matrix4d& pose,
                                           double soft_start) {
-  xyz_error_ = grip_position_-current_tip_fk_.topRightCorner<1, 3>().transpose();
+  xyz_error_ = grip_position_-current_tip_fk_.topRightCorner<3, 1>();
   position_error_.segment<3>(0) = xyz_error_;
   position_error_.array() *= spring_gains_;
-  velocity_error_ = current_jacobians_actual_*velocity_error_.segment<4>(0);
+  velocity_error_ = current_jacobians_actual_ * (joint_velocities_ - feedback_velocity_);
   impedance_error_ = position_error_ + velocity_error_;
-  impedance_torque_ = current_jacobians_actual_.transpose()*impedance_error_;
-  Eigen::Vector3d gravity = -pose.topRightCorner<1, 3>();
+  impedance_torque_ = current_jacobians_actual_.transpose() * impedance_error_;
+  Eigen::Vector3d gravity = -pose.topRightCorner<3, 1>();
   get_grav_comp<4, 7>(robot_, feedback_position_, masses_, gravity, grav_comp_torque_);
   joint_efforts_ = (impedance_torque_ * soft_start) + grav_comp_torque_;
 

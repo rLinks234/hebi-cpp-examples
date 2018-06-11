@@ -87,16 +87,16 @@ void Leg<NegateDirection>::update_command(hebi::GroupCommand& group_command,
   // Calculate position and velocity
   const double knee_velocity = Direction*knee_velocity_;
   hip_command.position().set(Direction*hip_angle_);
-  hip_command.velocity().set(knee_velocity*0.5);
+  hip_command.velocity().set(static_cast<float>(knee_velocity*0.5));
   knee_command.position().set(Direction*knee_angle_);
-  knee_command.velocity().set(knee_velocity);
+  knee_command.velocity().set(static_cast<float>(knee_velocity));
 
   // ----------------
   // Calculate effort
 
   // Calculate the current positional error
-  xyz_error_ = current_command_tip_fk_.topRightCorner<1, 3>() -
-               current_tip_fk_.topRightCorner<1, 3>();
+  xyz_error_ = current_command_tip_fk_.topRightCorner<3, 1>() -
+               current_tip_fk_.topRightCorner<3, 1>();
   position_error_.segment<3>(0) = xyz_error_;
   // Calculate the current velocity error by:
   //  multiplying the current jacobian at the endeffector frame
@@ -123,8 +123,8 @@ void Leg<NegateDirection>::update_command(hebi::GroupCommand& group_command,
     impedance_torque_ *= soft_start;
   }
 
-  hip_command.effort().set(impedance_torque_[0]);
-  knee_command.effort().set(impedance_torque_[1]);
+  hip_command.effort().set(static_cast<float>(impedance_torque_[0]));
+  knee_command.effort().set(static_cast<float>(impedance_torque_[1]));
 }
 
 template<bool NegateDirection>
