@@ -12,7 +12,6 @@ static constexpr double US_TO_S = 1.0/1000000.0;
 
 Igor::Igor() {
   com_.setZero();
-  pose_gyros_.setZero();
   rpy_modules_.setZero();
   pose_.setIdentity();
   current_position_.setZero();
@@ -24,8 +23,8 @@ Igor::Igor() {
   current_orientation_.setZero();
   line_com_.setZero();
   ground_point_.setZero();
-  roll_rotation_.setZero();
-  pitch_rotation_.setZero();
+  roll_rotation_.setIdentity();
+  pitch_rotation_.setIdentity();
 }
 
 //------------------------------------------------------------------------------
@@ -78,7 +77,7 @@ void Igor::update_pose_estimate() {
 
   // FIXME: document below
   for (size_t i = 0; i < 14; i++) {
-    pose_gyros_.col(i).applyOnTheLeft(imu_frames_[i].topLeftCorner<3, 3>());
+    current_gyros_.col(i).applyOnTheLeft(imu_frames_[i].topLeftCorner<3, 3>());
     if (any_nan(current_orientation_, i)) {
       rpy_modules_.col(i) = Eigen::Vector3d::Constant(std::numeric_limits<double>::quiet_NaN());
     } else {
@@ -103,7 +102,7 @@ static double matrix_finite_mean(
   size_t nonnan_count = 0;
 
   for (size_t i : index) {
-    double val = static_cast<double>(mat(Index, i));
+    auto val = static_cast<double>(mat(Index, i));
     if (std::isfinite(val)) {
       mean += val;
       nonnan_count++;
@@ -128,7 +127,7 @@ static double colwise_finite_mean(const Eigen::Matrix<S, Rows, Cols>& mat,
   size_t nonnan_count = 0;
 
   for (size_t i : index) {
-    double val = static_cast<double>(mat(RowIndex, i));
+    auto val = static_cast<double>(mat(RowIndex, i));
     if (std::isfinite(val)) {
       mean += val;
       nonnan_count++;
@@ -155,7 +154,7 @@ void Igor::calculate_lean_angle() {
   pose_.topLeftCorner<3, 3>() = pitch_rotation_ * roll_rotation_;
 
   // rad/s
-  feedback_lean_angle_velocity_ = colwise_finite_mean<1, 3, NumDoFs, 6>(pose_gyros_, imu_modules_);
+  feedback_lean_angle_velocity_ = colwise_finite_mean<1, 3, NumDoFs, 6>(current_gyros_, imu_modules_);
 
   // Find the mean of the two legs' translation vectors at the endeffector
   ground_point_ =
@@ -169,12 +168,12 @@ void Igor::calculate_lean_angle() {
   height_com_ = line_com_.norm();
 
   // Using the line center of mass, find the feedback lean angle
-  feedback_lean_angle_ = std::atan2(line_com_[0], line_com_[2]);
+  feedback_lean_angle_ = std::atan2(line_com_[0], line_com_[2]) * 180.0 / M_PI;
 
   // Update Igor's center of mass by applying the transforms in the following order:
   //  1) pitch rotation
   //  2) roll rotation
-  line_com_.applyOnTheLeft(pose_.topLeftCorner<3, 3>());
+  com_.applyOnTheLeft(pose_.topLeftCorner<3, 3>());
 
   // Update CoM of legs based on current pose estimate from calculated lean angle
   left_leg_.current_com_frame_at<0>().applyOnTheLeft(pose_);
@@ -346,7 +345,7 @@ static double get_diff_rx_time(GroupFeedback& fbk,
 
   uint64_t micros = sum / numNonZero;
   uint64_t us_to_s_mod = micros % 1000000;
-  double secs = static_cast<double>(micros / 1000000);
+  auto secs = static_cast<double>(micros / 1000000);
   secs += static_cast<double>(us_to_s_mod) * US_TO_S;
   return secs;
 }
@@ -370,6 +369,8 @@ void Igor::spin_once(bool bc) {
   const double dt = get_diff_rx_time(group_feedback_,
     last_rx_time_, diff_rx_time_);
 
+  Eigen::Vector3d gyro_tmp;
+  Eigen::Vector4f orntn_tmp;
   for (size_t i = 0; i < NumDoFs; i++) {
     auto& feedback = group_feedback_[i];
     auto& actuator = feedback.actuator();
@@ -385,10 +386,16 @@ void Igor::spin_once(bool bc) {
     const auto gyro = imu.gyro().get();
     const auto orntn = imu.orientation().get();
 
-    current_gyros_.col(i) =
-      Eigen::Vector3f(gyro.getX(), gyro.getY(), gyro.getZ());
-    current_orientation_.col(i) =
-      Eigen::Vector4f(orntn.getW(), orntn.getX(), orntn.getY(), orntn.getZ());
+    gyro_tmp[0] = static_cast<double>(gyro.getX());
+    gyro_tmp[1] = static_cast<double>(gyro.getY());
+    gyro_tmp[2] = static_cast<double>(gyro.getZ());
+    orntn_tmp[0] = orntn.getW();
+    orntn_tmp[1] = orntn.getX();
+    orntn_tmp[2] = orntn.getY();
+    orntn_tmp[3] = orntn.getZ();
+
+    current_gyros_.col(i) = gyro_tmp;
+    current_orientation_.col(i) = orntn_tmp;
   }
 
   // TODO: optionally parallelize this

@@ -25,10 +25,10 @@ private:
   template<typename S> using VectorDoF = ArmBase::VectorDoF<S>;
   template<typename S> using JacobianMatrix = ArmBase::JacobianMatrix<S>;
 
-  double jacobian_determinant_threshold_;
-  double current_determinant_actual_;
-  double current_determinant_expected_;
-  double user_commanded_wrist_velocity_;
+  double jacobian_determinant_threshold_{0.010};
+  double current_determinant_actual_{0.0};
+  double current_determinant_expected_{0.0};
+  double user_commanded_wrist_velocity_{0.0};
 
   alignas(16) Eigen::Vector3d user_commanded_grip_velocity_;
   alignas(16) Eigen::Vector3d grip_position_;

@@ -25,7 +25,7 @@ private:
   double home_knee_angle_;
   double home_hip_angle_;
   double knee_angle_min_{0.65};
-  double knee_angle_max_{0.65};
+  double knee_angle_max_{2.65};
   double hip_angle_{0.0};
   double knee_angle_{0.0};
   double knee_velocity_{0.0};

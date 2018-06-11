@@ -22,6 +22,8 @@ class Igor {
 
 private:
 
+  friend class IgorAccessor;
+
   static constexpr size_t NumImuModules = 6;
   static constexpr size_t NumDoFs = 14;
 
@@ -95,9 +97,8 @@ private:
   Eigen::Matrix<float, NumDoFs, 1> current_velocity_;
   Eigen::Matrix<float, NumDoFs, 1> current_velocity_command_;
   Eigen::Matrix<float, NumDoFs, 1> current_velocity_error_;
-  Eigen::Matrix<float, 3, NumDoFs> current_gyros_; 
+  Eigen::Matrix<double, 3, NumDoFs> current_gyros_;
   Eigen::Matrix<float, 4, NumDoFs> current_orientation_;
-  Eigen::Matrix<double, 3, NumDoFs> pose_gyros_;
   Eigen::Matrix<double, 3, NumDoFs> rpy_modules_;
 
   alignas(64) std::array<Eigen::Matrix4d, 14> imu_frames_;

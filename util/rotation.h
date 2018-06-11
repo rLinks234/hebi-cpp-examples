@@ -148,7 +148,7 @@ void rot2ea(Eigen::Matrix<S, Rows, Cols>& R, Vector3<S>& output) {
 
   S x, y, z;
 
-  if (singular) {
+  if (!singular) {
     x = atan2(R(2, 1), R(2, 2));
     y = atan2(-R(2, 0), sy);
     z = atan2(sy2, sy1);

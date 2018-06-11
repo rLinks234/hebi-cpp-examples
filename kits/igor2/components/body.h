@@ -171,14 +171,14 @@ public:
 
   template<size_t Index>
   Matrix4d& current_fk_frame_at() {
-    static_assert(Index < CoMFrameCount, "");
-    return current_coms_[Index];
+    static_assert(Index < OutputFrameCount, "");
+    return current_fk_[Index];
   }
 
   template<size_t Index>
   Eigen::Matrix4d& current_com_frame_at() {
-    static_assert(Index < OutputFrameCount, "");
-    return current_fk_[Index];
+    static_assert(Index < CoMFrameCount, "");
+    return current_coms_[Index];
   }
 
 //

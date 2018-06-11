@@ -48,9 +48,9 @@ update_position() {
   {
     const double inv_mass = 1.0 / mass();
     Eigen::Matrix<double, CoMFrameCount, 3> com_calc_m;
-    com_calc_m.col(0) = masses_; // masses_.transpose()
-    com_calc_m.col(1) = masses_; // masses_.transpose()
-    com_calc_m.col(2) = masses_; // masses_.transpose()
+    com_calc_m.col(0) = masses_;
+    com_calc_m.col(1) = masses_;
+    com_calc_m.col(2) = masses_;
 
     const Eigen::Matrix3d prod = current_xyz_ * com_calc_m;
     const double com_x = prod.row(0).sum() * inv_mass;
