@@ -6,7 +6,7 @@ namespace hebi {
 
 template <size_t DoFCount, size_t OutputFrameCount, size_t CoMFrameCount>
 void PeripheralBody<DoFCount, OutputFrameCount, CoMFrameCount>::
-  update_position() {
+update_position() {
 
   static_assert(OutputFrameCount > 0, "OutputFrameCount must be > 0");
   static_assert(DoFCount > 0, "DoFCount must be > 0");
@@ -64,19 +64,65 @@ void PeripheralBody<DoFCount, OutputFrameCount, CoMFrameCount>::
 
 template <size_t DoFCount, size_t OutputFrameCount, size_t CoMFrameCount>
 std::shared_ptr<hebi::trajectory::Trajectory> PeripheralBody<DoFCount, OutputFrameCount, CoMFrameCount>::
-  create_home_trajectory(const Eigen::VectorXd& position,
-                         double duration) {
-  // TODO
+create_home_trajectory(const Eigen::VectorXd& position,
+                       double duration) {
+  Eigen::VectorXd current_positions = Eigen::VectorXd(DoFCount);
+
+  MatrixXd positions(DoFCount, 2);
+  MatrixXd zeros = MatrixXd::Zero(DoFCount, 2);
+  VectorXd time(2);
+
+  time[0] = 0.0;
+  time[1] = duration;
+
+  for (size_t i = 0; i < DoFCount; i++) {
+    positions(i, 0) = position[group_indices_[i]];
+    positions(i, 1) = home_angles_[i];
+  }
+
+  return trajectory::Trajectory::createUnconstrainedQp(time, positions,
+                                                       &zeros, &zeros);
 }
 
 template <size_t DoFCount, size_t OutputFrameCount, size_t CoMFrameCount>
-VectorXd PeripheralBody<DoFCount, OutputFrameCount, CoMFrameCount>::
-  get_grav_comp_efforts(const Eigen::VectorXd& positions,
-                        const Vector3d& gravty) {
-  // TODO
+void PeripheralBody<DoFCount, OutputFrameCount, CoMFrameCount>::
+get_grav_comp_efforts(const Eigen::VectorXd& positions,
+                        const Vector3d& gravity,
+                        Eigen::Matrix<double, DoFCount, 1>& comp_torque) {
+  // Normalize gravity vector (to 1g, or 9.8 m/s^2)
+  Eigen::Vector3d normed_gravity = gravity;
+  if (normed_gravity.norm() > 0.0) {
+    normed_gravity /= normed_gravity.norm();
+    normed_gravity *= 9.81;
+  }
+
+  hebi::robot_model::MatrixXdVector jacobians;
+  robot_.getJ(HebiFrameTypeCenterOfMass, positions, jacobians);
+
+  // Get torque for each module
+  // comp_torque = J' * wrench_vector
+  // (for each frame, sum this quantity)
+  comp_torque.setZero();
+
+  // Wrench vector
+  Eigen::Matrix<double, 6, 1> wrench_vec(6); // For a single frame; this is (Fx/y/z, tau x/y/z)
+  wrench_vec.setZero();
+  for (size_t i = 0; i < CoMFrameCount; ++i) {
+    // Set translational part
+    for (size_t j = 0; j < 3; ++j) {
+      wrench_vec[j] = -normed_gravity[j] * masses_[i];
+    }
+
+    // Add the torques for each joint to support the mass at this frame
+    comp_torque += (jacobians[i].transpose() * wrench_vec).segment<DoFCount>(0);
+  }
 }
 
 template void LegBase::update_position();
 template void ArmBase::update_position();
+template std::shared_ptr<hebi::trajectory::Trajectory> LegBase::create_home_trajectory(const Eigen::VectorXd& position, double duration);
+template std::shared_ptr<hebi::trajectory::Trajectory> ArmBase::create_home_trajectory(const Eigen::VectorXd& position, double duration);
+template void LegBase::get_grav_comp_efforts(const Eigen::VectorXd& positions, const Vector3d& gravity, Eigen::Matrix<double, 2, 1>& comp_torque);
+template void ArmBase::get_grav_comp_efforts(const Eigen::VectorXd& positions, const Vector3d& gravity, Eigen::Matrix<double, 4, 1>& comp_torque);
 
 }

@@ -12,6 +12,8 @@ class Leg : public PeripheralBody<2, 4, 4> {
 
 private:
 
+  friend class Igor;
+
   static constexpr double Direction = DirectionResolver<NegateDirection>::Direction;
 
   void setup_leg();
@@ -35,6 +37,11 @@ private:
 
   alignas(64) Eigen::Matrix4d current_command_tip_fk_;
   alignas(64) Eigen::Matrix4d hip_transform_;
+
+  // Called by igor
+  void set_knee_angle(double angle) {
+    knee_angle_ = angle;
+  }
 
 protected:
 

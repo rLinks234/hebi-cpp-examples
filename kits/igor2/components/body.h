@@ -203,8 +203,9 @@ public:
   std::shared_ptr<hebi::trajectory::Trajectory> create_home_trajectory(const Eigen::VectorXd& position,
                                           double duration=3.0);
 
-  VectorXd get_grav_comp_efforts(const Eigen::VectorXd& positions,
-                                 const Eigen::Vector3d& gravty);
+  void get_grav_comp_efforts(const Eigen::VectorXd& positions,
+                             const Eigen::Vector3d& gravty,
+                             Eigen::Matrix<double, DoFCount, 1>& comp_torque);
 
 };
 

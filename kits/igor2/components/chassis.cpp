@@ -100,8 +100,7 @@ static inline double clip(double val, double low, double high) {
   return val;
 }
 
-void Chassis::update_velocity_controller(double dt,
-                                         const VelocityControllerParams& params) {
+void Chassis::update_velocity_controller(double dt, const VelocityControllerParams& params) {
 
   // Consts are liberally pasted everywhere to encourage the compiler
   // to take advantage of constant propagation. A C++ compliant compiler

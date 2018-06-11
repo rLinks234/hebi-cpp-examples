@@ -20,6 +20,8 @@ set(HEBI_CPP_SOURCES
   ${HEBI_DIR}/src/trajectory.cpp
   ${HEBI_DIR}/src/log_file.cpp)
 
+
+set(CMAKE_CXX_FLAGS_DEBUG "-fsanitize=address ${CMAKE_CXX_FLAGS_DEBUG}")
 set(HEBI_CPP_LINK_DIRECTORY ${HEBI_DIR}/lib/linux_x86_64)
 set(HEBI_CPP_INCLUDE_DIRECTORIES ${HEBI_DIR}/include ${HEBI_DIR}/include/Eigen ${HEBI_DIR}/src)
 

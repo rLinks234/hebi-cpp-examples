@@ -37,6 +37,7 @@ private:
   double wheel_radius_{0.100};
   double wheel_base_{0.43};
   double max_wheel_velocity_{10.0};
+  std::string gains_file_{"./resources/igorGains.xml"};
 
   //----------------------------------------------------------------------------
   // General state fields

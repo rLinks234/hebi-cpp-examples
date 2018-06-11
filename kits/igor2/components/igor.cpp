@@ -8,6 +8,8 @@
 
 namespace hebi {
 
+static constexpr double US_TO_S = 1.0/1000000.0;
+
 Igor::Igor() {
   com_.setZero();
   pose_gyros_.setZero();
@@ -186,10 +188,125 @@ void Igor::calculate_lean_angle() {
 }
 
 void Igor::soft_startup() {
-  // TODO
-}
+  group_->sendFeedbackRequest();
+  group_->getNextFeedback(group_feedback_);
 
-static constexpr double US_TO_S = 1.0 / 1000000.0;
+  for (size_t i = 0; i < 14; i++) {
+    auto& actuator = group_feedback_[i].actuator();
+    auto& rxTime = actuator.receiveTime();
+    auto& position = actuator.position();
+    if (rxTime) {
+      last_rx_time_[i] = rxTime.get();
+    } else {
+      last_rx_time_[i] = 0;
+    }
+    current_position_[i] = position.get();
+  }
+
+  using high_resolution_clock = std::chrono::high_resolution_clock;
+
+  auto l_leg_t = left_leg_.create_home_trajectory(current_position_);
+  auto r_leg_t = right_leg_.create_home_trajectory(current_position_);
+  auto l_arm_t = left_arm_.create_home_trajectory(current_position_);
+  auto r_arm_t = right_arm_.create_home_trajectory(current_position_);
+
+  const double soft_start_scale = 1.0 / 3.0;
+  double t = 0.0;
+  double left_knee = 0.0;
+  double right_knee = 0.0;
+
+  Vector3d gravity = -pose_.col(3).segment<3>(0);
+  Eigen::Matrix<double, 4, 1> grav_comp_efforts;
+  Eigen::VectorXd pos(4);
+  Eigen::VectorXd vel(4);
+
+  chassis_.update_time();
+
+  auto start_time = high_resolution_clock::now();
+
+  while (t < 3.0) {
+    const double soft_start = std::min(t*soft_start_scale, 1.0);
+
+    // Left Arm
+    left_arm_.get_grav_comp_efforts(current_position_, gravity, grav_comp_efforts);
+    l_arm_t->getState(t, &pos, &vel, nullptr);
+    grav_comp_efforts *= soft_start;
+
+    size_t idx = 0;
+    for (size_t i : left_arm_.group_indices()) {
+      auto& actuator = group_command_[i].actuator();
+      actuator.position().set(pos[idx]);
+      actuator.velocity().set(static_cast<float>(vel[idx]));
+      actuator.effort().set(static_cast<float>(grav_comp_efforts[idx]));
+      idx++;
+    }
+
+    // Right Arm
+    right_arm_.get_grav_comp_efforts(current_position_, gravity, grav_comp_efforts);
+    r_arm_t->getState(t, &pos, &vel, nullptr);
+    grav_comp_efforts *= soft_start;
+
+    idx = 0;
+    for (size_t i : right_arm_.group_indices()) {
+      auto& actuator = group_command_[i].actuator();
+      actuator.position().set(pos[idx]);
+      actuator.velocity().set(static_cast<float>(vel[idx]));
+      actuator.effort().set(static_cast<float>(grav_comp_efforts[idx]));
+      idx++;
+    }
+
+    // Left Leg
+    l_leg_t->getState(t, &pos, &vel, nullptr);
+
+    idx = 0;
+    for (size_t i : left_leg_.group_indices()) {
+      auto& actuator = group_command_[i].actuator();
+      actuator.position().set(pos[idx]);
+      actuator.velocity().set(static_cast<float>(vel[idx]));
+      idx++;
+    }
+
+    left_knee = pos[1];
+
+    // Right Leg
+    r_leg_t->getState(t, &pos, &vel, nullptr);
+
+    idx = 0;
+    for (size_t i : right_leg_.group_indices()) {
+      auto& actuator = group_command_[i].actuator();
+      actuator.position().set(pos[idx]);
+      actuator.velocity().set(static_cast<float>(vel[idx]));
+      idx++;
+    }
+
+    right_knee = pos[1];
+
+    // Send command
+    group_->sendCommand(group_command_);
+    group_->getNextFeedback(group_feedback_);
+
+    // Update current position
+    for (size_t i = 0; i < 14; i++) {
+      current_position_[i] = group_feedback_[i].actuator().position().get();
+    }
+
+    auto time = high_resolution_clock::now() - start_time;
+    t = static_cast<double>(std::chrono::duration_cast<std::chrono::microseconds>(time).count()) * US_TO_S;
+  }
+
+  left_leg_.set_knee_angle(left_knee);
+  right_leg_.set_knee_angle(right_knee);
+
+  for (size_t i = 0; i < 14; i++) {
+    auto& actuator = group_feedback_[i].actuator();
+    auto& rxTime = actuator.receiveTime();
+    if (rxTime) {
+      last_rx_time_[i] = rxTime.get();
+    } else {
+      last_rx_time_[i] = 0;
+    }
+  }
+}
 
 static double get_diff_rx_time(GroupFeedback& fbk,
                                std::array<uint64_t, 14>& last_time,
@@ -303,7 +420,11 @@ void Igor::spin_once(bool bc) {
     right_arm_.integrate_step(dt, calculated_grip_velocity);
 
     // Populate velocity controller parameters
-    // TODO
+    vc_params_.left_wheel_velocity = current_velocity_[0];
+    vc_params_.right_wheel_velocity = current_velocity_[1];
+    vc_params_.height_com = height_com_;
+    vc_params_.feedback_lean_angle = feedback_lean_angle_;
+    vc_params_.feedback_lean_angle_velocity = feedback_lean_angle_velocity_;
 
     chassis_.update_velocity_controller(dt, vc_params_);
 
@@ -351,6 +472,8 @@ void Igor::spin_once(bool bc) {
     left_arm_.update_command(group_command_, pose_, soft_start);
     right_arm_.update_command(group_command_, pose_, soft_start);
   }
+
+  group_->sendCommand(group_command_);
 }
 
 void Igor::stop_controller() {
@@ -380,6 +503,9 @@ void Igor::start_controller() {
   imu_frames_[4] = right_leg_.base_frame();
   imu_frames_[6] = left_arm_.base_frame();
   imu_frames_[10] = right_arm_.base_frame();
+
+  vc_params_.wheel_radius = wheel_radius_;
+  vc_params_.robot_mass = mass_;
 
   // -------------------
   // Begin startup phase
@@ -429,7 +555,7 @@ void Igor::perform_start(std::condition_variable& start_condition) {
 
 // TEMP
 static std::shared_ptr<Group> find_igor() {
-#if 0
+#if 1
   Lookup lookup;
   std::this_thread::sleep_for(std::chrono::seconds(3));
   return lookup.getGroupFromNames({"Igor II"},
@@ -458,8 +584,8 @@ void Igor::start() {
   group_->setCommandLifetimeMs(300);
   group_->setFeedbackFrequencyHz(100.0);
 
-  // TODO: find joystick
-  // TODO: load gains
+  group_command_.readGains(gains_file_);
+  group_->sendCommandWithAcknowledgement(group_command_);
 
   std::condition_variable start_condition;
   // std::thread constructor passes arguments by copy.
