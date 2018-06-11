@@ -40,7 +40,7 @@ private:
 
   // Called by igor
   void set_knee_angle(double angle) {
-    knee_angle_ = angle;
+    knee_angle_ = Direction*angle;
   }
 
 protected:

@@ -96,6 +96,11 @@ void Arm<NegateDirection>::setup_arm() {
   set_mass(masses.sum());
   masses_ = masses.segment<CoMFrameCount>(0);
 
+  grip_position_ = home_ef_.topRightCorner<3, 1>();
+  joint_angles_ = home_angles_;
+  joint_velocities_.setZero();
+  joint_efforts_.setZero();
+
 }
 
 //------------------------------------------------------------------------------

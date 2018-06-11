@@ -44,9 +44,8 @@ void Chassis::update_time() {
 static constexpr double MILLI_TO_SEC = 1.0 / 1000.0;
 template<typename T> double to_sec(const T& t) {
   auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(t);
-  uint64_t ct = static_cast<uint64_t>(ms.count());
-  double ret = static_cast<double>(ct) * MILLI_TO_SEC;
-  return ret + static_cast<double>(ct % 1000) * MILLI_TO_SEC;
+  auto ct = static_cast<uint64_t>(ms.count());
+  return static_cast<double>(ct) * MILLI_TO_SEC;
 }
 
 void Chassis::update_trajectory(double user_commanded_knee_velocity,
