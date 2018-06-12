@@ -38,12 +38,6 @@ private:
   alignas(64) Eigen::Matrix4d current_command_tip_fk_;
   alignas(64) Eigen::Matrix4d hip_transform_;
 
-  // Called by igor
-  void set_knee_angle(double angle) {
-    knee_angle_ = Direction*angle;
-    hip_angle_ = (M_PI+knee_angle_)*0.5;
-  }
-
 protected:
 
   void update_position() override;

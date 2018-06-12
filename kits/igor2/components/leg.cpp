@@ -8,8 +8,8 @@ namespace hebi {
 
 template<bool NegateDirection>
 void Leg<NegateDirection>::setup_leg() {
-  spring_gains_ << 2.0, 0.0, 1.0, 0.0, 0.0, 0.0;
-  damper_gains_ << 400.0, 0.0, 100.0, 0.0, 0.0, 0.0;
+  spring_gains_ << 400.0, 0.0, 100.0, 0.0, 0.0, 0.0;
+  damper_gains_ << 2.0, 0.0, 1.0, 0.0, 0.0, 0.0;
   roll_gains_ << 0.0, 0.0, 10.0, 0.0, 0.0, 0.0;
 
   const double pi_half = M_PI * 0.5;
@@ -33,6 +33,9 @@ void Leg<NegateDirection>::setup_leg() {
   util::rotateX<double, 4>(base_frame, -Direction * pi_half);
   home_angles_[0] = Direction * home_hip_angle_;
   home_angles_[1] = Direction * home_knee_angle_;
+
+  hip_angle_ = home_hip_angle_;
+  knee_angle_ = home_knee_angle_;
 
   robot_.setBaseFrame(base_frame);
 

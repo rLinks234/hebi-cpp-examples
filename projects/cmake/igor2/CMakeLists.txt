@@ -67,4 +67,4 @@ set(HEBI_C_LIB ${HEBI_CPP_LINK_DIRECTORY}/${CMAKE_SHARED_LIBRARY_PREFIX}hebi${CM
 
 target_link_libraries(hebi-input PUBLIC hebi_cpp ${HEBI_C_LIB} ${SDL2_LIBRARIES})
 target_link_libraries(hebi-igor2 PUBLIC hebi-input)
-target_link_libraries(igor2_demo PUBLIC hebi-igor2)
+target_link_libraries(igor2_demo PUBLIC hebi-igor2 pthread)

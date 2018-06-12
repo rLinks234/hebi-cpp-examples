@@ -25,6 +25,8 @@ public:
     Eigen::Vector3d line_com = igor->line_com_;
     Eigen::Vector3d ground_point = igor->ground_point_;
 
+    auto calculated_knee_velocity = igor->chassis().calculated_knee_velocity();
+
     printf(
         "mass: %.3f\n"
         "roll_angle: %.3f\n"
@@ -34,14 +36,18 @@ public:
         "height_com: %.3f\n"
         "com: %.3f, %.3f, %.3f\n"
         "line_com: %.3f, %.3f, %.3f\n"
-        "ground_point: %.3f, %.3f, %.3f\n\n"
+        "ground_point: %.3f, %.3f, %.3f\n"
+        "--- Chassis ---\n"
+        "chassis.calculated_knee_velocity: %.3f\n"
+        "\n"
         "=================================================\n\n",
         mass, roll_angle, pitch_angle,
         feedback_lean_angle, feedback_lean_angle_velocity,
         height_com,
         com[0], com[1], com[2],
         line_com[0], line_com[1], line_com[2],
-        ground_point[0], ground_point[1], ground_point[2]);
+        ground_point[0], ground_point[1], ground_point[2],
+        calculated_knee_velocity);
   }
 
   explicit IgorAccessor(Igor* igor_) : igor(igor_) {}

@@ -21,32 +21,6 @@ static bool any_nan(const T& mat, size_t Col) {
   );
 }
 
-template<size_t Index, size_t MatSize, size_t IdxSize,
-         typename IdxType=size_t, typename S=double>
-static double matrix_finite_mean(
-  const Eigen::Matrix<S, 3, MatSize>& mat,
-  const std::array<IdxType, IdxSize>& index) {
-  
-  static_assert(MatSize >= IdxSize, "MatSize must be greater than or equal to IdxSize");
-
-  double mean = 0.0;
-  size_t nonnan_count = 0;
-
-  for (size_t i : index) {
-    auto val = static_cast<double>(mat(Index, i));
-    if (std::isfinite(val)) {
-      mean += val;
-      nonnan_count++;
-    }
-  }
-
-  if (nonnan_count > 0) {
-    return mean / static_cast<double>(nonnan_count);
-  }
-
-  return 0.0;
-}
-
 template<size_t RowIndex, size_t Rows, size_t Cols, size_t IdxSize,
          typename IdxType=size_t, typename S=double>
 static double colwise_finite_mean(const Eigen::Matrix<S, Rows, Cols>& mat,
@@ -279,10 +253,8 @@ void Igor::soft_startup() {
 
   const double soft_start_scale = 1.0 / 3.0;
   double t = 0.0;
-  double left_knee = 0.0;
-  double right_knee = 0.0;
 
-  Vector3d gravity = -pose_.col(3).segment<3>(0);
+  Vector3d gravity = -pose_.col(2).segment<3>(0);
   Eigen::Matrix<double, 4, 1> grav_comp_efforts;
   Eigen::VectorXd pos(4);
   Eigen::VectorXd vel(4);
@@ -333,8 +305,6 @@ void Igor::soft_startup() {
       idx++;
     }
 
-    left_knee = pos[1];
-
     // Right Leg
     r_leg_t->getState(t, &pos, &vel, nullptr);
 
@@ -345,8 +315,6 @@ void Igor::soft_startup() {
       actuator.velocity().set(static_cast<float>(vel[idx]));
       idx++;
     }
-
-    right_knee = pos[1];
 
     // Send command
     group_->sendCommand(group_command_);
@@ -360,9 +328,6 @@ void Igor::soft_startup() {
     auto time = high_resolution_clock::now() - start_time;
     t = static_cast<double>(std::chrono::duration_cast<std::chrono::microseconds>(time).count()) * US_TO_S;
   }
-
-  left_leg_.set_knee_angle(left_knee);
-  right_leg_.set_knee_angle(right_knee);
 
   for (size_t i = 0; i < NumDoFs; i++) {
     auto& actuator = group_feedback_[i].actuator();
