@@ -20,11 +20,11 @@ update_position() {
   robot_.getFK(HebiFrameTypeCenterOfMass, pos, com_frames);
   robot_.getFK(HebiFrameTypeOutput, pos, fk_frames);
 
-  for (size_t i = 0; i < OutputFrameCount; i++) {
+  for (size_t i = 0; i < CoMFrameCount; i++) {
     current_coms_[i] = com_frames[i];
   }
 
-  for (size_t i = 0; i < CoMFrameCount; i++) {
+  for (size_t i = 0; i < OutputFrameCount; i++) {
     current_fk_[i] = fk_frames[i];
   }
 
@@ -32,11 +32,11 @@ update_position() {
 
   Eigen::MatrixXd jacobian_endeffector(6, DoFCount);
   robot_.getJEndEffector(pos, jacobian_endeffector);
-  current_jacobians_actual_ = jacobian_endeffector.topRightCorner<6, DoFCount>();
+  current_jacobians_actual_ = jacobian_endeffector.topLeftCorner<6, DoFCount>();
 
   pos.segment<DoFCount>(0) = feedback_position_command_;
   robot_.getJEndEffector(pos, jacobian_endeffector);
-  current_jacobians_expected_ = jacobian_endeffector.topRightCorner<6, DoFCount>();
+  current_jacobians_expected_ = jacobian_endeffector.topLeftCorner<6, DoFCount>();
 
   for (size_t i = 0; i < CoMFrameCount; i++) {
     Eigen::Matrix4d& mat = current_coms_[i];
@@ -64,7 +64,7 @@ template <size_t DoFCount, size_t OutputFrameCount, size_t CoMFrameCount>
 std::shared_ptr<hebi::trajectory::Trajectory> PeripheralBody<DoFCount, OutputFrameCount, CoMFrameCount>::
 create_home_trajectory(const Eigen::VectorXd& position,
                        double duration) {
-  Eigen::VectorXd current_positions = Eigen::VectorXd(DoFCount);
+  Eigen::VectorXd current_positions(DoFCount);
 
   MatrixXd positions(DoFCount, 2);
   MatrixXd zeros = MatrixXd::Zero(DoFCount, 2);

@@ -85,6 +85,8 @@ public:
     return knee_angle_;
   }
 
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+
 };
 
 }

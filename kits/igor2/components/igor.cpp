@@ -557,10 +557,16 @@ void Igor::start() {
   }
 
   group_->setCommandLifetimeMs(300);
-  group_->setFeedbackFrequencyHz(100.0);
+  group_->setFeedbackFrequencyHz(200.0);
 
-  group_command_.readGains(gains_file_);
-  group_->sendCommandWithAcknowledgement(group_command_);
+  hebi::GroupCommand cmd(NumDoFs);
+  if (!cmd.readGains(gains_file_)) {
+    printf("could not read file %s\n", gains_file_.c_str());
+  } else {
+    printf("Loaded gains file!\n");
+  }
+
+  group_->sendCommandWithAcknowledgement(cmd);
 
   std::condition_variable start_condition;
   // std::thread constructor passes arguments by copy.

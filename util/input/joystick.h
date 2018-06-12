@@ -67,7 +67,7 @@ public:
       callback(ts, value);
     }
 
-    cv_.notify_all();    
+    cv_.notify_all();
   }
 
   void set_name(const std::string& name) {

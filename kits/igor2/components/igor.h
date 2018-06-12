@@ -39,7 +39,7 @@ private:
   double wheel_radius_{0.100};
   double wheel_base_{0.43};
   double max_wheel_velocity_{10.0};
-  std::string gains_file_{"./resources/igorGains.xml"};
+  std::string gains_file_{"/home/hebi/develop/hebi/repos/git/hebi-cpp-examples/kits/igor2/resources/igorGains_noCamera.xml"};
 
   //----------------------------------------------------------------------------
   // General state fields
@@ -171,6 +171,8 @@ public:
   Arm<true>& right_arm() {
     return right_arm_;
   }
+
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
 };
 

@@ -95,6 +95,8 @@ public:
     return std::unique_lock<std::mutex>(lock_);
   }
 
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+
 };
 
 template <size_t DoFCount, size_t OutputFrameCount, size_t CoMFrameCount>
@@ -118,17 +120,17 @@ protected:
   std::array<Eigen::Matrix4d, OutputFrameCount> current_fk_;
   std::array<Eigen::Matrix4d, CoMFrameCount> current_coms_;
   
-  alignas(16) VectorDoF<double> feedback_position_;
-  alignas(16) VectorDoF<double> feedback_position_command_;
-  alignas(16) VectorDoF<double> impedance_torque_;
-  alignas(16) VectorDoF<double> home_angles_;
-  alignas(16) VectorDoF<double> feedback_velocity_;
-  alignas(16) VectorDoF<double> feedback_velocity_error_;
+  alignas(32) VectorDoF<double> feedback_position_;
+  alignas(32) VectorDoF<double> feedback_position_command_;
+  alignas(32) VectorDoF<double> impedance_torque_;
+  alignas(32) VectorDoF<double> home_angles_;
+  alignas(32) VectorDoF<double> feedback_velocity_;
+  alignas(32) VectorDoF<double> feedback_velocity_error_;
   
-  alignas(16) Eigen::Vector3d xyz_error_;
-  alignas(16) Vector6d position_error_;
-  alignas(16) Vector6d impedance_error_;
-  alignas(16) Vector6d velocity_error_;
+  alignas(32) Eigen::Vector3d xyz_error_;
+  alignas(32) Vector6d position_error_;
+  alignas(32) Vector6d impedance_error_;
+  alignas(32) Vector6d velocity_error_;
 
   alignas(64) Eigen::Matrix4d current_tip_fk_;
 
@@ -209,6 +211,8 @@ public:
   void get_grav_comp_efforts(const Eigen::VectorXd& positions,
                              const Eigen::Vector3d& gravty,
                              Eigen::Matrix<double, DoFCount, 1>& comp_torque);
+
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
 };
 

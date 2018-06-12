@@ -77,8 +77,8 @@ int main(int argc, char** argv) {
 
     igor->start();
 
-    std::thread printer_thd(igor_printer, igor);
-    printer_thd.detach();
+    //std::thread printer_thd(igor_printer, igor);
+    //printer_thd.detach();
 
     igor->wait_for();
   } catch (...) {

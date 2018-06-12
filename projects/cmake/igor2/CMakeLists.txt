@@ -22,13 +22,14 @@ set(HEBI_CPP_SOURCES
 
 
 #set(CMAKE_CXX_FLAGS_DEBUG "-fsanitize=address ${CMAKE_CXX_FLAGS_DEBUG}")
+#set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE}")
+#set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} -fxray-instrument")
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fxray-instrument -fxray-instruction-threshold=12")
 set(HEBI_CPP_LINK_DIRECTORY ${HEBI_DIR}/lib/linux_x86_64)
 set(HEBI_CPP_INCLUDE_DIRECTORIES ${HEBI_DIR}/include ${HEBI_DIR}/include/Eigen ${HEBI_DIR}/src)
 
 # Packaging sources into object library allows reuse if you have multiple targets
-add_library(hebi_cpp SHARED ${HEBI_CPP_SOURCES})
-
-
+add_library(hebi_cpp STATIC ${HEBI_CPP_SOURCES})
 
 set(hebi_input_src
   ${ROOT_DIR}/util/input/event_handler.cpp
@@ -47,8 +48,8 @@ set(igor2_lib_src
   ${ROOT_DIR}/kits/igor2/components/joystick_interface.cpp
   ${ROOT_DIR}/kits/igor2/components/leg.cpp)
 
-add_library(hebi-input SHARED ${hebi_input_src})
-add_library(hebi-igor2 SHARED ${igor2_lib_src})
+add_library(hebi-input STATIC ${hebi_input_src})
+add_library(hebi-igor2 STATIC ${igor2_lib_src})
 add_executable(igor2_demo ${igor2_driver_src})
 
 target_include_directories(hebi_cpp PUBLIC

@@ -97,11 +97,13 @@ void Arm<NegateDirection>::setup_arm() {
   set_mass(masses.sum());
   masses_ = masses.segment<CoMFrameCount>(0);
 
+  user_commanded_grip_velocity_.setZero();
   grip_position_ = home_ef_.topRightCorner<3, 1>();
   new_grip_position_ = grip_position_;
   joint_angles_ = home_angles_;
   joint_velocities_.setZero();
   joint_efforts_.setZero();
+  grav_comp_torque_.setZero();
 
 }
 
@@ -148,7 +150,7 @@ void Arm<NegateDirection>::integrate_step(double dt,
     // TODO: Check w/ matt and dave if solving w/ LU factorization makes sense here
     joint_velocities_.segment<3>(0) = current_jacobians_actual_.topLeftCorner<3, 3>().
         fullPivLu().solve(user_commanded_grip_velocity_);
-    joint_angles_ = new_arm_joint_angles;
+    joint_angles_.segment<3>(0) = new_arm_joint_angles.segment<3>(0);
     grip_position_ = new_grip_position_;
   }
 
