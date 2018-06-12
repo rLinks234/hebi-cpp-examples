@@ -9,38 +9,7 @@
 namespace hebi {
 
 static constexpr double US_TO_S = 1.0/1000000.0;
-
-Igor::Igor() {
-  com_.setZero();
-  rpy_modules_.setZero();
-  pose_.setIdentity();
-  current_position_.setZero();
-  current_position_command_.setZero();
-  current_velocity_.setZero();
-  current_velocity_command_.setZero();
-  current_velocity_error_.setZero();
-  current_gyros_.setZero();
-  current_orientation_.setZero();
-  line_com_.setZero();
-  ground_point_.setZero();
-  roll_rotation_.setIdentity();
-  pitch_rotation_.setIdentity();
-}
-
-//------------------------------------------------------------------------------
-// Private Functions
-
-void Igor::update_com() {
-  coms_.col(0) = left_leg_.com();
-  coms_.col(1) = right_leg_.com();
-  coms_.col(2) = left_arm_.com();
-  coms_.col(3) = right_arm_.com();
-
-  const double inv_mass = 1.0 / mass_;
-  com_[0] = coms_.row(0).dot(masses_) * inv_mass;
-  com_[1] = coms_.row(1).dot(masses_) * inv_mass;
-  com_[2] = coms_.row(2).dot(masses_) * inv_mass;
-}
+static constexpr double MILLI_TO_SEC = 0.001;
 
 template<typename T>
 static bool any_nan(const T& mat, size_t Col) {
@@ -50,44 +19,6 @@ static bool any_nan(const T& mat, size_t Col) {
     std::isnan(mat(2, Col)) ||
     std::isnan(mat(3, Col))
   );
-}
-
-void Igor::update_pose_estimate() {
-  // TODO
-
-  // leg endeffectors
-  imu_frames_[0] = left_leg_.current_tip_fk();
-  imu_frames_[1] = right_leg_.current_tip_fk();
-  // hip link output frames
-  imu_frames_[3] = left_leg_.current_com_frame_at<1>();
-  imu_frames_[5] = right_leg_.current_com_frame_at<1>();
-  // arm base bracket
-  imu_frames_[7] = left_arm_.current_com_frame_at<1>();
-  imu_frames_[11] = right_arm_.current_com_frame_at<1>();
-  // arm shoulder link
-  imu_frames_[8] = left_arm_.current_com_frame_at<3>();
-  imu_frames_[12] = right_arm_.current_com_frame_at<3>();
-  // arm elbow link
-  imu_frames_[9] = left_arm_.current_com_frame_at<5>();
-  imu_frames_[13] = right_arm_.current_com_frame_at<5>();
-
-  Eigen::Matrix3d q_rot;
-  Eigen::Vector3d ea;
-  q_rot.setIdentity();
-
-  // FIXME: document below
-  for (size_t i = 0; i < 14; i++) {
-    current_gyros_.col(i).applyOnTheLeft(imu_frames_[i].topLeftCorner<3, 3>());
-    if (any_nan(current_orientation_, i)) {
-      rpy_modules_.col(i) = Eigen::Vector3d::Constant(std::numeric_limits<double>::quiet_NaN());
-    } else {
-      util::quat2rot<double, 3, 3>(current_orientation_.col(i).cast<double>(), q_rot);
-      q_rot.applyOnTheRight(imu_frames_[i].topLeftCorner<3, 3>().transpose());
-      util::rot2ea<double, 3, 3>(q_rot, ea);
-      rpy_modules_.col(i) = ea;
-    }
-  }
-
 }
 
 template<size_t Index, size_t MatSize, size_t IdxSize,
@@ -139,6 +70,143 @@ static double colwise_finite_mean(const Eigen::Matrix<S, Rows, Cols>& mat,
   }
 
   return 0.0;
+}
+
+static double get_diff_rx_time(GroupFeedback& fbk,
+                               std::array<uint64_t, 14>& last_time,
+                               std::array<uint64_t, 14>& diff_time) {
+  // NOTE: We terribly assume that `last_time` times are actually less
+  // than the current times. This is very bad because of
+  // numeric underflow if we are wrong, or if memory becomes corrupted.
+  // Get with the times!
+  for (size_t i = 0; i < 14; i++) {
+    const auto& rx_time_field = fbk[i].actuator().receiveTime();
+    if (rx_time_field) {
+      uint64_t val = rx_time_field.get();
+      diff_time[i] = val - last_time[i];
+      last_time[i] = val;
+    } else {
+      diff_time[i] = 0;
+      last_time[i] = 0;
+    }
+  }
+
+  uint64_t sum = 0;
+  size_t numNonZero = 0;
+
+  for (size_t i = 0; i < 14; i++) {
+    auto diff = diff_time[i];
+    if (diff > 0) {
+      numNonZero++;
+      sum += diff;
+    }
+  }
+
+  if (numNonZero == 0) {
+    // This is pretty bad. Should warn or somtehing
+    // Just be hacky and return default dt of 0.01;
+    return 0.01;
+  }
+
+  uint64_t micros = sum / numNonZero;
+  uint64_t us_to_s_mod = micros % 1000000;
+  auto secs = static_cast<double>(micros / 1000000);
+  secs += static_cast<double>(us_to_s_mod) * US_TO_S;
+  return secs;
+}
+
+template<typename T>
+static T clip(T val, T min, T max) {
+  return std::min(std::max(val, min), max);
+}
+
+// TEMP
+static std::shared_ptr<Group> find_igor() {
+#if 1
+  Lookup lookup;
+  std::this_thread::sleep_for(std::chrono::seconds(3));
+  return lookup.getGroupFromNames({"Igor II"},
+    {"wheel1", "wheel2",
+     "hip1", "knee1",
+     "hip2", "knee2",
+     "base1", "shoulder1", "elbow1", "wrist1",
+     "base2", "shoulder2", "elbow2", "wrist2"});
+#else
+  return hebi::Group::createImitation(14);
+#endif
+}
+
+//------------------------------------------------------------------------------
+//
+
+Igor::Igor() {
+  com_.setZero();
+  rpy_modules_.setZero();
+  pose_.setIdentity();
+  current_position_.setZero();
+  current_position_command_.setZero();
+  current_velocity_.setZero();
+  current_velocity_command_.setZero();
+  current_velocity_error_.setZero();
+  current_gyros_.setZero();
+  current_orientation_.setZero();
+  line_com_.setZero();
+  ground_point_.setZero();
+  roll_rotation_.setIdentity();
+  pitch_rotation_.setIdentity();
+}
+
+//------------------------------------------------------------------------------
+// Private Functions
+
+void Igor::update_com() {
+  coms_.col(0) = left_leg_.com();
+  coms_.col(1) = right_leg_.com();
+  coms_.col(2) = left_arm_.com();
+  coms_.col(3) = right_arm_.com();
+
+  const double inv_mass = 1.0 / mass_;
+  com_[0] = coms_.row(0).dot(masses_) * inv_mass;
+  com_[1] = coms_.row(1).dot(masses_) * inv_mass;
+  com_[2] = coms_.row(2).dot(masses_) * inv_mass;
+}
+
+void Igor::update_pose_estimate() {
+  // TODO
+
+  // leg endeffectors
+  imu_frames_[0] = left_leg_.current_tip_fk();
+  imu_frames_[1] = right_leg_.current_tip_fk();
+  // hip link output frames
+  imu_frames_[3] = left_leg_.current_com_frame_at<1>();
+  imu_frames_[5] = right_leg_.current_com_frame_at<1>();
+  // arm base bracket
+  imu_frames_[7] = left_arm_.current_com_frame_at<1>();
+  imu_frames_[11] = right_arm_.current_com_frame_at<1>();
+  // arm shoulder link
+  imu_frames_[8] = left_arm_.current_com_frame_at<3>();
+  imu_frames_[12] = right_arm_.current_com_frame_at<3>();
+  // arm elbow link
+  imu_frames_[9] = left_arm_.current_com_frame_at<5>();
+  imu_frames_[13] = right_arm_.current_com_frame_at<5>();
+
+  Eigen::Matrix3d q_rot;
+  Eigen::Vector3d ea;
+  q_rot.setIdentity();
+
+  // FIXME: document below
+  for (size_t i = 0; i < 14; i++) {
+    current_gyros_.col(i).applyOnTheLeft(imu_frames_[i].topLeftCorner<3, 3>());
+    if (any_nan(current_orientation_, i)) {
+      rpy_modules_.col(i) = Eigen::Vector3d::Constant(std::numeric_limits<double>::quiet_NaN());
+    } else {
+      util::quat2rot<double, 3, 3>(current_orientation_.col(i).cast<double>(), q_rot);
+      q_rot.applyOnTheRight(imu_frames_[i].topLeftCorner<3, 3>().transpose());
+      util::rot2ea<double, 3, 3>(q_rot, ea);
+      rpy_modules_.col(i) = ea;
+    }
+  }
+
 }
 
 void Igor::calculate_lean_angle() {
@@ -306,56 +374,6 @@ void Igor::soft_startup() {
     }
   }
 }
-
-static double get_diff_rx_time(GroupFeedback& fbk,
-                               std::array<uint64_t, 14>& last_time,
-                               std::array<uint64_t, 14>& diff_time) {
-  // NOTE: We terribly assume that `last_time` times are actually less
-  // than the current times. This is very bad because of
-  // numeric underflow if we are wrong, or if memory becomes corrupted.
-  // Get with the times!
-  for (size_t i = 0; i < 14; i++) {
-    const auto& rx_time_field = fbk[i].actuator().receiveTime();
-    if (rx_time_field) {
-      uint64_t val = rx_time_field.get();
-      diff_time[i] = val - last_time[i];
-      last_time[i] = val;
-    } else {
-      diff_time[i] = 0;
-      last_time[i] = 0;
-    }
-  }
-
-  uint64_t sum = 0;
-  size_t numNonZero = 0;
-
-  for (size_t i = 0; i < 14; i++) {
-    auto diff = diff_time[i];
-    if (diff > 0) {
-      numNonZero++;
-      sum += diff;
-    }
-  }
-
-  if (numNonZero == 0) {
-    // This is pretty bad. Should warn or somtehing
-    // Just be hacky and return default dt of 0.01;
-    return 0.01;
-  }
-
-  uint64_t micros = sum / numNonZero;
-  uint64_t us_to_s_mod = micros % 1000000;
-  auto secs = static_cast<double>(micros / 1000000);
-  secs += static_cast<double>(us_to_s_mod) * US_TO_S;
-  return secs;
-}
-
-template<typename T>
-static T clip(T val, T min, T max) {
-  return std::min(std::max(val, min), max);
-}
-
-static constexpr double MILLI_TO_SEC = 0.001;
 
 void Igor::spin_once(bool bc) {
   group_->getNextFeedback(group_feedback_);
@@ -560,22 +578,6 @@ void Igor::perform_start(std::condition_variable& start_condition) {
 
 //------------------------------------------------------------------------------
 // Public Functions
-
-// TEMP
-static std::shared_ptr<Group> find_igor() {
-#if 1
-  Lookup lookup;
-  std::this_thread::sleep_for(std::chrono::seconds(3));
-  return lookup.getGroupFromNames({"Igor II"},
-    {"wheel1", "wheel2",
-     "hip1", "knee1",
-     "hip2", "knee2",
-     "base1", "shoulder1", "elbow1", "wrist1",
-     "base2", "shoulder2", "elbow2", "wrist2"});
-#else
-  return hebi::Group::createImitation(14);
-#endif
-}
 
 void Igor::start() {
   std::unique_lock<std::mutex> lock(state_lock_);
