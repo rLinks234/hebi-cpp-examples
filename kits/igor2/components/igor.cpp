@@ -178,24 +178,24 @@ void Igor::update_pose_estimate() {
   imu_frames_[0] = left_leg_.current_tip_fk();
   imu_frames_[1] = right_leg_.current_tip_fk();
   // hip link output frames
-  imu_frames_[3] = left_leg_.current_com_frame_at<1>();
-  imu_frames_[5] = right_leg_.current_com_frame_at<1>();
+  imu_frames_[3] = left_leg_.current_fk_frame_at<1>();
+  imu_frames_[5] = right_leg_.current_fk_frame_at<1>();
   // arm base bracket
-  imu_frames_[7] = left_arm_.current_com_frame_at<1>();
-  imu_frames_[11] = right_arm_.current_com_frame_at<1>();
+  imu_frames_[7] = left_arm_.current_fk_frame_at<1>();
+  imu_frames_[11] = right_arm_.current_fk_frame_at<1>();
   // arm shoulder link
-  imu_frames_[8] = left_arm_.current_com_frame_at<3>();
-  imu_frames_[12] = right_arm_.current_com_frame_at<3>();
+  imu_frames_[8] = left_arm_.current_fk_frame_at<3>();
+  imu_frames_[12] = right_arm_.current_fk_frame_at<3>();
   // arm elbow link
-  imu_frames_[9] = left_arm_.current_com_frame_at<5>();
-  imu_frames_[13] = right_arm_.current_com_frame_at<5>();
+  imu_frames_[9] = left_arm_.current_fk_frame_at<5>();
+  imu_frames_[13] = right_arm_.current_fk_frame_at<5>();
 
   Eigen::Matrix3d q_rot;
   Eigen::Vector3d ea;
   q_rot.setIdentity();
 
   // FIXME: document below
-  for (size_t i = 0; i < 14; i++) {
+  for (size_t i = 0; i < NumDoFs; i++) {
     current_gyros_.col(i).applyOnTheLeft(imu_frames_[i].topLeftCorner<3, 3>());
     if (any_nan(current_orientation_, i)) {
       rpy_modules_.col(i) = Eigen::Vector3d::Constant(std::numeric_limits<double>::quiet_NaN());
@@ -212,8 +212,8 @@ void Igor::update_pose_estimate() {
 void Igor::calculate_lean_angle() {
 
   // Update roll and pitch angles
-  roll_angle_ = matrix_finite_mean<0, NumDoFs, NumImuModules>(rpy_modules_, imu_modules_);
-  pitch_angle_ = matrix_finite_mean<1, NumDoFs, NumImuModules>(rpy_modules_, imu_modules_);
+  roll_angle_ = colwise_finite_mean<0, 3, NumDoFs, NumImuModules>(rpy_modules_, imu_modules_);
+  pitch_angle_ = colwise_finite_mean<1, 3, NumDoFs, NumImuModules>(rpy_modules_, imu_modules_);
 
   // Rotate by the pitch angle about the Y axis,
   // followed by rotating by the roll angle about the X axis
@@ -222,7 +222,7 @@ void Igor::calculate_lean_angle() {
   pose_.topLeftCorner<3, 3>() = pitch_rotation_ * roll_rotation_;
 
   // rad/s
-  feedback_lean_angle_velocity_ = colwise_finite_mean<1, 3, NumDoFs, 6>(current_gyros_, imu_modules_);
+  feedback_lean_angle_velocity_ = colwise_finite_mean<1, 3, NumDoFs, NumImuModules>(current_gyros_, imu_modules_);
 
   // Find the mean of the two legs' translation vectors at the endeffector
   ground_point_ =
@@ -258,7 +258,7 @@ void Igor::soft_startup() {
   group_->sendFeedbackRequest();
   group_->getNextFeedback(group_feedback_);
 
-  for (size_t i = 0; i < 14; i++) {
+  for (size_t i = 0; i < NumDoFs; i++) {
     auto& actuator = group_feedback_[i].actuator();
     auto& rxTime = actuator.receiveTime();
     auto& position = actuator.position();
@@ -353,7 +353,7 @@ void Igor::soft_startup() {
     group_->getNextFeedback(group_feedback_);
 
     // Update current position
-    for (size_t i = 0; i < 14; i++) {
+    for (size_t i = 0; i < NumDoFs; i++) {
       current_position_[i] = group_feedback_[i].actuator().position().get();
     }
 
@@ -364,7 +364,7 @@ void Igor::soft_startup() {
   left_leg_.set_knee_angle(left_knee);
   right_leg_.set_knee_angle(right_knee);
 
-  for (size_t i = 0; i < 14; i++) {
+  for (size_t i = 0; i < NumDoFs; i++) {
     auto& actuator = group_feedback_[i].actuator();
     auto& rxTime = actuator.receiveTime();
     if (rxTime) {

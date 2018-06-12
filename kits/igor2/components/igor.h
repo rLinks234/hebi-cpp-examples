@@ -101,7 +101,7 @@ private:
   Eigen::Matrix<float, 4, NumDoFs> current_orientation_;
   Eigen::Matrix<double, 3, NumDoFs> rpy_modules_;
 
-  alignas(64) std::array<Eigen::Matrix4d, 14> imu_frames_;
+  alignas(64) std::array<Eigen::Matrix4d, NumDoFs> imu_frames_;
 
   //----------------------------------------------------------------------------
   // Velocity controller fields
