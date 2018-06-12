@@ -27,7 +27,7 @@ void Leg<NegateDirection>::setup_leg() {
   robot_.addLink(robot_model::RobotModel::LinkType::X5, 0.325, M_PI);
 
   home_knee_angle_ = 2.2689280275926285; // 130 degrees
-  home_hip_angle_ = 3.839724354387525;   // 220 degrees
+  home_hip_angle_ = 2.705260340591211;   // 155 degrees
 
   base_frame(1, 3) = Direction * 0.15;
   util::rotateX<double, 4>(base_frame, -Direction * pi_half);

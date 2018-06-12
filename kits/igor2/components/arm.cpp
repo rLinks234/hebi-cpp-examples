@@ -55,13 +55,16 @@ static void get_grav_comp(
 
 template <bool NegateDirection>
 void Arm<NegateDirection>::setup_arm() {
+  damper_gains_  << 2.0, 0.0, 1.0, 0.0, 0.0, 0.0;
+  spring_gains_  << 400.0, 0.0, 100.0, 0.0, 0.0, 0.0;
+
   Matrix4d base_frame = Matrix4d::Identity();
   base_frame(2, 3) = 0.20;
   robot_.addActuator(robot_model::RobotModel::ActuatorType::X5_4);
   robot_model::RobotModel::BracketType mounting;
 
-  constexpr double shoulder_home_angle = 20.0 * M_PI / 180.0;
-  constexpr double elbow_home_angle = 60.0 * M_PI / 180.0;
+  constexpr double shoulder_home_angle = 0.3490658503988659; // 20 degrees
+  constexpr double elbow_home_angle = 1.0471975511965976;    // 60 degrees
 
   home_angles_[0] = 0.0;
   home_angles_[3] = 0.0;
