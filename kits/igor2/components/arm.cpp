@@ -55,8 +55,8 @@ static void get_grav_comp(
 
 template <bool NegateDirection>
 void Arm<NegateDirection>::setup_arm() {
-  damper_gains_  << 2.0, 0.0, 1.0, 0.0, 0.0, 0.0;
-  spring_gains_  << 400.0, 0.0, 100.0, 0.0, 0.0, 0.0;
+  damper_gains_  << 1.0, 1.0, 1.0, 0.0, 0.0, 0.0;
+  spring_gains_  << 100.0, 10.0, 100.0, 0.0, 0.0, 0.0;
 
   Matrix4d base_frame = Matrix4d::Identity();
   base_frame(2, 3) = 0.20;
@@ -169,6 +169,7 @@ void Arm<NegateDirection>::update_command(hebi::GroupCommand& group_command,
   position_error_.segment<3>(0) = xyz_error_;
   position_error_.array() *= spring_gains_;
   velocity_error_ = current_jacobians_actual_ * (joint_velocities_ - feedback_velocity_);
+  velocity_error_.array() *= damper_gains_;
   impedance_error_ = position_error_ + velocity_error_;
   impedance_torque_ = current_jacobians_actual_.transpose() * impedance_error_;
   Eigen::Vector3d gravity = -pose.topRightCorner<3, 1>();
