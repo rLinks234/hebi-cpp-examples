@@ -131,7 +131,7 @@ void Arm<NegateDirection>::integrate_step(double dt,
   VectorXd new_arm_joint_angles(NumOfDofs);
   VectorXd initial_pos(NumOfDofs);
   MatrixXd jacob(6, NumOfDofs);
-  initial_pos.segment<NumOfDofs>(0) = feedback_position_.segment<NumOfDofs>(0);
+  initial_pos.segment<NumOfDofs>(0) = feedback_position_.segment<NumOfDofs>(0); // initial_pos[0:NumDofs] = feedback_position[0:NumDofs]
   auto res = robot_.solveIK(initial_pos, new_arm_joint_angles, xyz_objective);
 
   robot_.getJacobianEndEffector(new_arm_joint_angles, jacob);
