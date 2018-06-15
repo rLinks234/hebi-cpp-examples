@@ -140,6 +140,8 @@ protected:
   alignas(64) Eigen::Matrix<double, CoMFrameCount, 1> masses_;
   alignas(64) Eigen::Matrix<double, 3, CoMFrameCount> current_xyz_;
 
+  alignas(64) double jacobian_com_tmp_[16 * DoFCount * CoMFrameCount] {0.0};
+
   /**
    * Called after `on_feedback_received`
    */

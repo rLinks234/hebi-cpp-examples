@@ -12,31 +12,32 @@ update_position() {
   static_assert(DoFCount > 0, "DoFCount must be > 0");
   static_assert(CoMFrameCount > 0, "CoMFrameCount must be > 0");
 
-  robot_model::Matrix4dVector com_frames(CoMFrameCount);
-  robot_model::Matrix4dVector fk_frames(OutputFrameCount);
-  Eigen::VectorXd pos(DoFCount);
-  pos.segment<DoFCount>(0) = feedback_position_;
+  auto internal = robot_.internal_;
 
-  robot_.getFK(HebiFrameTypeCenterOfMass, pos, com_frames);
-  robot_.getFK(HebiFrameTypeOutput, pos, fk_frames);
+  // robot_.getFK(HebiFrameTypeCenterOfMass, pos, com_frames);
+  hebiRobotModelGetForwardKinematics(internal, HebiFrameTypeCenterOfMass, feedback_position_.data(), jacobian_com_tmp_);
 
   for (size_t i = 0; i < CoMFrameCount; i++) {
-    current_coms_[i] = com_frames[i];
+    Map<Matrix<double, 4, 4, RowMajor>> com_frame(jacobian_com_tmp_ + i * 16);
+    current_coms_[i] = com_frame;
   }
 
+  // robot_.getFK(HebiFrameTypeOutput, pos, fk_frames);
+  hebiRobotModelGetForwardKinematics(internal, HebiFrameTypeOutput, feedback_position_.data(), jacobian_com_tmp_);
+
   for (size_t i = 0; i < OutputFrameCount; i++) {
-    current_fk_[i] = fk_frames[i];
+    Map<Matrix<double, 4, 4, RowMajor>> fk_frame(jacobian_com_tmp_ + i * 16);
+    current_fk_[i] = fk_frame;
   }
 
   current_tip_fk_ = current_fk_[OutputFrameCount - 1];
 
-  Eigen::MatrixXd jacobian_endeffector(6, DoFCount);
-  robot_.getJEndEffector(pos, jacobian_endeffector);
-  current_jacobians_actual_ = jacobian_endeffector.topLeftCorner<6, DoFCount>();
+  hebiRobotModelGetJacobians(internal, HebiFrameTypeEndEffector, feedback_position_.data(), jacobian_com_tmp_);
+  Map<Matrix<double, 6, DoFCount, RowMajor>> jacobian(jacobian_com_tmp_, 6, DoFCount);
+  current_jacobians_actual_ = jacobian;
 
-  pos.segment<DoFCount>(0) = feedback_position_command_;
-  robot_.getJEndEffector(pos, jacobian_endeffector);
-  current_jacobians_expected_ = jacobian_endeffector.topLeftCorner<6, DoFCount>();
+  hebiRobotModelGetJacobians(internal, HebiFrameTypeEndEffector, feedback_position_command_.data(), jacobian_com_tmp_);
+  current_jacobians_expected_ = jacobian;
 
   for (size_t i = 0; i < CoMFrameCount; i++) {
     Eigen::Matrix4d& mat = current_coms_[i];
@@ -94,8 +95,9 @@ get_grav_comp_efforts(const Eigen::VectorXd& positions,
     normed_gravity *= 9.81;
   }
 
-  hebi::robot_model::MatrixXdVector jacobians;
-  robot_.getJ(HebiFrameTypeCenterOfMass, positions, jacobians);
+  auto internal = robot_.internal_;
+  constexpr size_t cols = DoFCount;
+  hebiRobotModelGetJacobians(internal, HebiFrameTypeCenterOfMass, positions.data(), jacobian_com_tmp_);
 
   // Get torque for each module
   // comp_torque = J' * wrench_vector
@@ -111,8 +113,10 @@ get_grav_comp_efforts(const Eigen::VectorXd& positions,
       wrench_vec[j] = -normed_gravity[j] * masses_[i];
     }
 
+    Map<Matrix<double, 6, DoFCount, RowMajor>> jacobian(jacobian_com_tmp_ + i*cols*6, 6, cols);
+
     // Add the torques for each joint to support the mass at this frame
-    comp_torque += (jacobians[i].transpose() * wrench_vec).segment<DoFCount>(0);
+    comp_torque += (jacobian.transpose() * wrench_vec).template segment<DoFCount>(0);
   }
 }
 

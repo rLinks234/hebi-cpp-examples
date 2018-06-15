@@ -175,7 +175,7 @@ void Arm<NegateDirection>::update_command(hebi::GroupCommand& group_command,
   impedance_error_ = position_error_ + velocity_error_;
   impedance_torque_ = current_jacobians_actual_.transpose() * impedance_error_;
   Eigen::Vector3d gravity = -pose.topRightCorner<3, 1>();
-  get_grav_comp<4, 7>(robot_, feedback_position_, masses_, gravity, grav_comp_torque_);
+  get_grav_comp_efforts(feedback_position_, gravity, grav_comp_torque_);
   joint_efforts_ = (impedance_torque_ * soft_start) + grav_comp_torque_;
 
   size_t idx = 0;

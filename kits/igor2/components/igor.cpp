@@ -329,6 +329,8 @@ void Igor::soft_startup() {
     t = static_cast<double>(std::chrono::duration_cast<std::chrono::microseconds>(time).count()) * US_TO_S;
   }
 
+  group_->getNextFeedback(group_feedback_);
+
   for (size_t i = 0; i < NumDoFs; i++) {
     auto& actuator = group_feedback_[i].actuator();
     auto& rxTime = actuator.receiveTime();
@@ -343,9 +345,9 @@ void Igor::soft_startup() {
 void Igor::spin_once(bool bc) {
   group_->getNextFeedback(group_feedback_);
 
-  using high_resolution_clock = std::chrono::high_resolution_clock;
+  using system_clock = std::chrono::system_clock;
   using millis = std::chrono::milliseconds;
-  auto relative_time = high_resolution_clock::now() - start_time_;
+  auto relative_time = system_clock::now() - start_time_;
 
   const double soft_start =
     std::min(static_cast<double>(std::chrono::duration_cast<millis>(relative_time).count())*MILLI_TO_SEC, 1.0);
@@ -511,7 +513,7 @@ void Igor::start_controller() {
   printf("Joystick found: %s\n", joystick_->name().c_str());
 
   register_igor_event_handlers(*this);
-  start_time_ = std::chrono::high_resolution_clock::now();
+  start_time_ = std::chrono::system_clock::now();
 
   state_lock_.lock();
   while(!quit_flag_) {
@@ -524,7 +526,7 @@ void Igor::start_controller() {
     state_lock_.lock();
   }
 
-  stop_time_ = std::chrono::high_resolution_clock::now();
+  stop_time_ = std::chrono::system_clock::now();
 
   // Need to make sure to unlock here!
   state_lock_.unlock();
@@ -556,8 +558,8 @@ void Igor::start() {
     return;
   }
 
-  group_->setCommandLifetimeMs(300);
-  group_->setFeedbackFrequencyHz(200.0);
+  group_->setCommandLifetimeMs(100);
+  group_->setFeedbackFrequencyHz(500.0);
 
   hebi::GroupCommand cmd(NumDoFs);
   if (!cmd.readGains(gains_file_)) {

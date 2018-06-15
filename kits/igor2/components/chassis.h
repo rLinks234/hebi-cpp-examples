@@ -9,9 +9,15 @@ namespace hebi {
 
 class Chassis : public BaseBody {
 
-private:
+public:
 
   static constexpr size_t NumCommands = 6;
+
+private:
+
+  VectorXd velocity_now{NumCommands};
+  VectorXd acceleration_now{NumCommands};
+  VectorXd jerk_now{NumCommands};
 
   void create_trajectory();
 

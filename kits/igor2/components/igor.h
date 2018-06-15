@@ -46,8 +46,8 @@ private:
   bool started_{false};
   bool balance_controller_enabled_{true};
   bool quit_flag_{false};
-  std::chrono::high_resolution_clock::time_point start_time_;
-  std::chrono::high_resolution_clock::time_point stop_time_;
+  std::chrono::system_clock::time_point start_time_;
+  std::chrono::system_clock::time_point stop_time_;
   size_t num_spins_{0};
   std::array<uint64_t, NumDoFs> last_rx_time_{0};
   std::array<uint64_t, NumDoFs> diff_rx_time_{0};

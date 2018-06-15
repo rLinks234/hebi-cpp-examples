@@ -72,7 +72,7 @@ class JoystickMapper {
 
 public:
 
-  static void map_joystick(std::shared_ptr<Joystick> joy) {
+  static void map_joystick(std::shared_ptr<Joystick> const& joy) {
     const std::string guid = joy->guid();
     auto itr = controllers.find(guid);
     if (itr == controllers.end()) {
@@ -94,7 +94,7 @@ public:
 
 };
 
-void map_joystick(std::shared_ptr<Joystick> joy) {
+void map_joystick(std::shared_ptr<Joystick> const& joy) {
   JoystickMapper::map_joystick(joy);
 }
 

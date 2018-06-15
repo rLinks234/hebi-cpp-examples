@@ -22,7 +22,7 @@ set(HEBI_CPP_SOURCES
 
 
 #set(CMAKE_CXX_FLAGS_DEBUG "-fsanitize=address ${CMAKE_CXX_FLAGS_DEBUG}")
-#set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE}")
+set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -march=skylake -mtune=skylake")
 #set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} -fxray-instrument")
 #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fxray-instrument -fxray-instruction-threshold=12")
 set(HEBI_CPP_LINK_DIRECTORY ${HEBI_DIR}/lib/linux_x86_64)
@@ -51,6 +51,11 @@ set(igor2_lib_src
 add_library(hebi-input STATIC ${hebi_input_src})
 add_library(hebi-igor2 STATIC ${igor2_lib_src})
 add_executable(igor2_demo ${igor2_driver_src})
+
+target_compile_options(hebi-input PRIVATE -Os)
+target_compile_options(hebi_cpp PRIVATE -Os)
+target_compile_options(hebi-igor2 PRIVATE -O3)
+target_compile_options(igor2_demo PRIVATE -O3)
 
 target_include_directories(hebi_cpp PUBLIC
   ${HEBI_CPP_INCLUDE_DIRECTORIES})

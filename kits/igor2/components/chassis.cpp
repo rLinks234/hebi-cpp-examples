@@ -16,11 +16,12 @@ Chassis::Chassis(std::mutex& lock, double mass, double com_x,
 //------------------------------------------------------------------------------
 // Private Functions
 
+MatrixXd velocities{Chassis::NumCommands, 2};
+MatrixXd accelerations{Chassis::NumCommands, 2};
+MatrixXd jerks{Chassis::NumCommands, 2};
+VectorXd time{2};
+
 void Chassis::create_trajectory() {
-  MatrixXd velocities(NumCommands, 2);
-  MatrixXd accelerations(NumCommands, 2);
-  MatrixXd jerks(NumCommands, 2);
-  VectorXd time(2);
 
   time[0] = 0.0;
   time[1] = minimum_ramp_time_;
@@ -60,9 +61,6 @@ void Chassis::update_trajectory(double user_commanded_knee_velocity,
   // Smooth the trajectories for various commands.
   // This will be the starting waypoint for the new trajectory.
   // The end waypoint will be the desired (user commanded) values.
-  VectorXd velocity_now(NumCommands);
-  VectorXd acceleration_now(NumCommands);
-  VectorXd jerk_now(NumCommands);
   trajectory_->getState(t, &velocity_now, &acceleration_now, &jerk_now);
 
   // Start waypoint

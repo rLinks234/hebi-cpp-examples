@@ -71,7 +71,7 @@ Joystick::~Joystick() {
 }
 
 // in joystick_mapper.cpp
-void map_joystick(std::shared_ptr<Joystick> joy);
+void map_joystick(std::shared_ptr<Joystick>  const& joy);
 
 void Joystick::set_at(size_t index, SDL_Joystick* joystick, SDL_GameController* game_controller) {
   std::lock_guard<std::mutex> lock(sJoystickLock);
@@ -113,7 +113,7 @@ std::vector<std::shared_ptr<Joystick>> Joystick::available_joysticks() {
   std::lock_guard<std::mutex> lock(sJoystickLock);
 
   ret.reserve(sJoysticks.size());
-  for (auto joystick : sJoysticks) {
+  for (const auto& joystick : sJoysticks) {
     ret.push_back(joystick);
   }
   return ret;
