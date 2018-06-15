@@ -2,6 +2,8 @@
 #include "components/arm.h"
 #include "components/leg.h"
 
+#include <iostream>
+
 namespace hebi {
 
 template <size_t DoFCount, size_t OutputFrameCount, size_t CoMFrameCount>
@@ -14,6 +16,7 @@ update_position() {
 
   auto internal = robot_.internal_;
 
+#if 0
   // robot_.getFK(HebiFrameTypeCenterOfMass, pos, com_frames);
   hebiRobotModelGetForwardKinematics(internal, HebiFrameTypeCenterOfMass, feedback_position_.data(), jacobian_com_tmp_);
 
@@ -29,6 +32,22 @@ update_position() {
     Map<Matrix<double, 4, 4, RowMajor>> fk_frame(jacobian_com_tmp_ + i * 16);
     current_fk_[i] = fk_frame;
   }
+
+#else
+
+  hebiRobotModelGetAllFK(internal, feedback_position_.data(), current_fk_[0].data(), current_coms_[0].data());
+/*
+  for (size_t i = 0; i < OutputFrameCount; i++) {
+    Map<Matrix<double, 4, 4>> fk_frame(output_tmp_2_ + i * 16);
+    current_fk_[i] = fk_frame;
+  }
+
+  for (size_t i = 0; i < CoMFrameCount; i++) {
+    Map<Matrix<double, 4, 4>> com_frame(jacobian_com_tmp_ + i * 16);
+    current_coms_[i] = com_frame;
+  }
+  */
+#endif
 
   current_tip_fk_ = current_fk_[OutputFrameCount - 1];
 

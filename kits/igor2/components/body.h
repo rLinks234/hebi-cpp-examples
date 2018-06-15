@@ -140,7 +140,9 @@ protected:
   alignas(64) Eigen::Matrix<double, CoMFrameCount, 1> masses_;
   alignas(64) Eigen::Matrix<double, 3, CoMFrameCount> current_xyz_;
 
+  // FIXME: find actual size needed for these, and allocate them somewhere else that is page aligned
   alignas(64) double jacobian_com_tmp_[16 * DoFCount * CoMFrameCount] {0.0};
+  alignas(64) double output_tmp_2_[16 * DoFCount * CoMFrameCount] {0.0};
 
   /**
    * Called after `on_feedback_received`

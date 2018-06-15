@@ -471,8 +471,10 @@ void Igor::spin_once(bool bc) {
 
 void Igor::stop_controller() {
   auto duration = stop_time_ - start_time_;
-  double sec = static_cast<double>(std::chrono::duration_cast<std::chrono::milliseconds>(duration).count())*MILLI_TO_SEC;
-  double freq = static_cast<double>(static_cast<double>(num_spins_) / sec);
+  uint64_t millis = std::chrono::duration_cast<std::chrono::milliseconds>(duration).count();
+  double milli_fractions = 1.0 / static_cast<double>(millis % 1000);
+  double sec = static_cast<double>(millis / 1000) + milli_fractions;
+  double freq = static_cast<double>(num_spins_) / sec;
   finished_cv_.notify_all();
   printf("ran for %.3f seconds.\nAverage frequency: %.3f Hz\n", sec, freq);
 }
@@ -513,9 +515,10 @@ void Igor::start_controller() {
   printf("Joystick found: %s\n", joystick_->name().c_str());
 
   register_igor_event_handlers(*this);
-  start_time_ = std::chrono::system_clock::now();
 
   state_lock_.lock();
+  start_time_ = std::chrono::system_clock::now();
+
   while(!quit_flag_) {
     bool bc = balance_controller_enabled_;
     state_lock_.unlock();

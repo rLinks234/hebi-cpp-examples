@@ -14,42 +14,6 @@
 
 namespace hebi {
 
-template <size_t NumDoFs, size_t CoMFrames>
-static void get_grav_comp(
-  robot_model::RobotModel& model,
-  const Eigen::Matrix<double, NumDoFs, 1>& positions,
-  const Eigen::Matrix<double, CoMFrames, 1>& masses,
-  const Eigen::Vector3d& gravity,
-  Eigen::Matrix<double, NumDoFs, 1>& comp_torque) {
-    // Normalize gravity vector (to 1g, or 9.8 m/s^2)
-    Eigen::Vector3d normed_gravity = gravity;
-    if (normed_gravity.norm() > 0.0) {
-      normed_gravity /= normed_gravity.norm();
-      normed_gravity *= 9.81;
-    }
-
-    hebi::robot_model::MatrixXdVector jacobians;
-    model.getJ(HebiFrameTypeCenterOfMass, positions, jacobians);
-
-    // Get torque for each module
-    // comp_torque = J' * wrench_vector
-    // (for each frame, sum this quantity)
-    comp_torque.setZero();
-
-    // Wrench vector
-    Eigen::Matrix<double, 6, 1> wrench_vec(6); // For a single frame; this is (Fx/y/z, tau x/y/z)
-    wrench_vec.setZero();
-    for (size_t i = 0; i < CoMFrames; ++i) {
-      // Set translational part
-      for (size_t j = 0; j < 3; ++j) {
-        wrench_vec[j] = -normed_gravity[j] * masses[i];
-      }
-
-      // Add the torques for each joint to support the mass at this frame
-      comp_torque += jacobians[i].transpose() * wrench_vec;
-    }
-}
-
 //------------------------------------------------------------------------------
 // Private Functions
 
@@ -139,8 +103,11 @@ void Arm<NegateDirection>::integrate_step(double dt,
   initial_pos.segment<NumOfDofs>(0) = feedback_position_.segment<NumOfDofs>(0); // initial_pos[0:NumDofs] = feedback_position[0:NumDofs]
   auto res = robot_.solveIK(initial_pos, new_arm_joint_angles, xyz_objective);
 
-  robot_.getJacobianEndEffector(new_arm_joint_angles, jacob);
-  double determinant_jacobian_new = jacob.topLeftCorner<3, 3>().determinant();
+  auto internal = robot_.internal_;
+  hebiRobotModelGetJacobians(internal, HebiFrameTypeEndEffector, new_arm_joint_angles.data(), jacobian_com_tmp_);
+  Map<Matrix<double, 6, NumOfDofs, RowMajor>> jacobian(jacobian_com_tmp_, 6, NumOfDofs);
+
+  double determinant_jacobian_new = jacobian.template topLeftCorner<3, 3>().determinant();
 
   if ((current_determinant_expected_ < jacobian_determinant_threshold_) &&
       (determinant_jacobian_new < current_determinant_expected_)) {
